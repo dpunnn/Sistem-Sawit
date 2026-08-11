@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+next-env.d.ts
+
+# Model & data besar
+ai/weights/*
+!ai/weights/.gitkeep
+data/raw/
+data/processed/
+
+# Env & artefak
+.env
+.env.local
+*.log
