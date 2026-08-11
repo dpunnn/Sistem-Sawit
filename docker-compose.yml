@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: neraca-db
+    environment:
+      POSTGRES_USER: neraca
+      POSTGRES_PASSWORD: neraca
+      POSTGRES_DB: neraca
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Script di sini jalan OTOMATIS saat volume pertama kali dibuat,
+      # jadi juri cukup `docker compose up` dan DB sudah terisi.
+      - ./backend/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neraca -d neraca"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      # Context = root repo, karena image butuh backend/ DAN ai/.
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: neraca-backend
+    environment:
+      DATABASE_URL: postgresql://neraca:neraca@db:5432/neraca
+      WEIGHTS_DIR: /app/ai/weights
+      COEFFICIENTS_PATH: /app/ai/config/coefficients.yaml
+    depends_on:
+      db:
+        # BUKAN depends_on biasa. service_healthy menahan backend sampai
+        # Postgres SIAP menerima koneksi, bukan sekadar containernya
+        # nyala. Tanpa ini backend crash di mesin yang lebih lambat --
+        # alias mesin juri.
+        condition: service_healthy
+    volumes:
+      - ./ai/weights:/app/ai/weights:ro
+      - ./data:/app/data:ro
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: neraca-frontend
+    environment:
+      # Dipakai rewrites di next.config.js. Hostname `backend` hanya
+      # dikenal di dalam jaringan docker -- browser tidak memanggilnya.
+      API_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
