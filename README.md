@@ -18,6 +18,7 @@ AI Innovation Challenge 2026 · COMPFEST 18 · Tema: **Smart Manufacturing**
 - [Arsitektur](#arsitektur)
 - [Stack Teknologi](#stack-teknologi)
 - [Menjalankan Secara Lokal](#menjalankan-secara-lokal)
+- [Setup untuk Anggota Tim](#setup-untuk-anggota-tim)
 - [Skenario Demo](#skenario-demo)
 - [Struktur Repo](#struktur-repo)
 - [Dataset](#dataset)
@@ -502,6 +503,127 @@ npm run dev
 cd backend
 pytest
 ```
+
+---
+
+## Setup untuk Anggota Tim
+
+### Onboarding pertama kali
+
+```bash
+git clone https://github.com/dpunnn/Sistem-Sawit.git
+cd Sistem-Sawit
+cp .env.example .env
+docker compose up --build
+```
+
+Empat baris, selesai. Tidak perlu memasang Python atau Node di komputer —
+semuanya dibangun di dalam container.
+
+### Kenapa beberapa file tidak ada di repo
+
+Sebagian berkas sengaja tidak di-commit. Penanganannya berbeda-beda:
+
+| Berkas | Kenapa diabaikan | Cara mendapatkannya |
+|---|---|---|
+| `node_modules/` | ratusan MB, isinya beda per OS | `npm install` |
+| `.venv/`, `__pycache__/` | artefak lokal | `pip install -r requirements.txt` |
+| `.next/`, `.pytest_cache/` | hasil build | dibuat otomatis |
+| `.env` | tempat nilai rahasia | `cp .env.example .env` |
+| `data/raw/` | dataset publik, ribuan berkas | unduh sendiri dari sumber di bagian [Dataset](#dataset) |
+| `ai/weights/` | bobot model, berkas biner besar | lihat catatan di bawah |
+
+Prinsipnya: **apa pun yang bisa dibangun ulang dari berkas yang sudah ada
+di repo, tidak ikut di-commit.** Yang di-commit hanya sumber kebenarannya
+(`package.json`, `requirements.txt`, `.env.example`).
+
+### Mendapatkan dataset
+
+Jangan saling mengirim berkas dataset antar-anggota. Semuanya bersumber
+publik, jadi setiap orang mengunduh sendiri dari tautan di bagian
+[Dataset](#dataset). Ini menjaga reprodusibilitas dan mematuhi ketentuan
+lisensi CC-BY.
+
+Letakkan hasil unduhan di:
+
+```
+data/raw/<nama-dataset>/
+```
+
+Struktur folder ini diabaikan Git, tetapi wajib sama di semua mesin agar
+skrip pelatihan di `ai/training/` berjalan tanpa penyesuaian path.
+
+### Bobot model
+
+Bobot hasil pelatihan **tidak diabaikan selamanya**. Begitu Model 1
+selesai dilatih, bobotnya wajib masuk repo — tanpa itu tidak ada yang
+bisa menjalankan sistem, termasuk penguji.
+
+Jika ukurannya melebihi ~100 MB, gunakan Git LFS:
+
+```bash
+git lfs install
+git lfs track "ai/weights/*.pt"
+git add .gitattributes
+```
+
+Lalu hapus baris `ai/weights/*` dari `.gitignore`.
+
+### Alur pengembangan harian
+
+Untuk iterasi cepat (terutama frontend), jalankan di luar Docker:
+
+```bash
+# Terminal 1 — database saja
+docker compose up db
+
+# Terminal 2 — backend
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# Terminal 3 — frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Pastikan menjalankan `docker compose up --build` penuh sebelum push
+perubahan besar, untuk memastikan sistem tetap utuh di lingkungan bersih.
+
+### Konvensi commit
+
+Setiap commit mengikuti [Conventional Commits](https://www.conventionalcommits.org):
+
+```
+feat: <deskripsi>       fitur atau fungsionalitas baru
+fix: <deskripsi>        perbaikan bug
+refactor: <deskripsi>   perubahan struktur tanpa mengubah perilaku
+chore: <deskripsi>      konfigurasi, dependensi, berkas pendukung
+docs: <deskripsi>       dokumentasi
+```
+
+Boleh ditambah cakupan agar lebih jelas:
+
+```bash
+git commit -m "feat(ai): tambah head ordinal CORAL pada detektor"
+git commit -m "fix(backend): perbaiki propagasi selang pada potensi minyak"
+git commit -m "chore(frontend): tambah package-lock untuk build reprodusibel"
+```
+
+Commit dan push setiap menyelesaikan satu perubahan bermakna, bukan
+menumpuk di akhir — riwayat yang menunjukkan pengembangan bertahap
+adalah bagian dari yang dinilai.
+
+### Kontrak data antara backend dan frontend
+
+`backend/app/schemas/models.py` dan `frontend/types/index.ts` adalah
+cerminan satu sama lain. **Jika salah satu berubah, keduanya harus
+diubah dalam commit yang sama.**
+
+Kontrak ini disepakati di awal justru agar frontend dapat membangun
+seluruh tampilan memakai data contoh sementara model masih dilatih —
+tidak ada bagian yang menunggu bagian lain.
 
 ---
 
