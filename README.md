@@ -103,52 +103,86 @@ tidak terkalibrasi, atau hal lain yang perlu investigasi.
 
 ## Alur Sistem
 
-```
-  [ KEBUN ] --panen--> [ TRUK ] --angkut--> [ GERBANG PKS ]
-                                                   |
-                                          jembatan timbang
-                                                   |
-  =============================================================
-   LAPIS 1 — PERSEPSI          "Apa yang masuk?"
-  =============================================================
-                                                   |
-              [ KAMERA ] --> Model 1: deteksi & klasifikasi
-                                     ordinal per tandan
-                                          |
-                             Model 2: permukaan -> SELURUH muatan
-                                     (inferensi observasi parsial)
-                                          |
-                             Model 4: POTENSI MINYAK (kg) + selang
-                                          |
-                    "Muatan ini mengandung 4.280 kg ± 190 minyak"
-                                          |
-                              [ grader konfirmasi / koreksi ]
-                                          |
-  =============================================================
-   PROSES PABRIK (dilacak per batch)
-  =============================================================
-                                          |
-        +-------------+-------------+-------------+
-        v             v             v             v
-   [STERILIZER]  [THRESHER]     [PRESS]    [KLARIFIKASI]
-    kondensat   janjang kosong  ampas kempa   sludge/CST
-      1,83%        2,44%          4,17%         7,04%
-        |             |             |             |
-        +-------------+------+------+-------------+
-                             |  loss terukur lab (harian)
-                             v
-                      [ CPO KELUAR ] -- terukur di tangki
-                             |
-  =============================================================
-   LAPIS 2 — PENALARAN        "Ke mana perginya?"
-  =============================================================
-                             |
-              Model 5: rekonsiliasi neraca massa (3 baris)
-                             |
-              Model 6: atribusi kehilangan ke penyebab
-                        (masing-masing dengan selang)
-                             |
-                    [ KARTU NERACA HARIAN ]
+```mermaid
+flowchart TD
+
+  subgraph GATE["&nbsp;🚚 GERBANG PKS — muatan masuk&nbsp;"]
+    direction TB
+    TRUK["Truk TBS tiba<br/><small>pemasok swadaya / KUD / inti</small>"]
+    TIMBANG["Jembatan Timbang<br/><small>berat bruto kg</small>"]
+    KAM["Kamera<br/><small>foto tumpukan, beberapa sudut</small>"]
+    TRUK --> TIMBANG
+    TRUK --> KAM
+  end
+
+  subgraph L1["&nbsp;👁 LAPIS 1 — PERSEPSI · Apa yang masuk?&nbsp;"]
+    direction TB
+    M1["<b>Model 1</b> · Deteksi ordinal per tandan<br/>CORAL loss, 7 kelas<br/><small>metrik: mAP + MAE indeks kelas</small>"]
+    M2["<b>Model 2</b> · Permukaan → seluruh muatan<br/>inferensi di bawah observasi parsial<br/><small>output: selang terkalibrasi</small>"]
+    M4["<b>Model 4</b> · Potensi minyak<br/>regresi, koefisien terbit + koreksi<br/><small>output: kg ± selang</small>"]
+    M1 -->|"deteksi per tandan ±e1"| M2
+    M2 -->|"komposisi muatan ±e2"| M4
+  end
+
+  GRADER{"Keyakinan<br/>tinggi?"}
+  MANUSIA["Grader periksa<br/><small>hanya tandan ragu, bukan semua</small>"]
+
+  DB1[("grading_result<br/><small>composition JSONB · potensi ± selang</small>")]
+
+  subgraph MILL["&nbsp;🏭 PROSES PABRIK — oil loss diukur lab tiap hari&nbsp;"]
+    direction LR
+    ST["Sterilizer<br/><small>kondensat 1,83%</small>"]
+    TH["Thresher<br/><small>janjang kosong 2,44%</small>"]
+    PR["Press<br/><small>ampas kempa 4,17%</small>"]
+    KL["Klarifikasi<br/><small>CST underflow 7,04%</small>"]
+    ST --> TH --> PR --> KL
+  end
+
+  DB2[("station_loss")]
+  DB3[("shift_output<br/><small>CPO aktual kg</small>")]
+
+  subgraph L2["&nbsp;🧮 LAPIS 2 — PENALARAN · Ke mana perginya?&nbsp;"]
+    direction TB
+    M5["<b>Model 5</b> · Rekonsiliasi neraca massa<br/>struktur 3 baris, deterministik<br/><small>teoretis → realistis → aktual</small>"]
+    M6["<b>Model 6</b> · Atribusi kehilangan<br/>dekomposisi + optimasi berkendala<br/><small>tiap penyebab ± selang + ambang tindakan</small>"]
+    M5 -->|"selisih ±e4"| M6
+  end
+
+  DB4[("balance<br/><small>attribution JSONB</small>")]
+  KARTU["<b>KARTU NERACA HARIAN</b><br/>2,2 poin hilang · Rp 47,3 juta"]
+
+  SUP["➜ SISI PEMASOK<br/>0,7 ± 0,25 buah mentah<br/><small>pemasok A, C, F</small>"]
+  MIL["➜ SISI PABRIK<br/>1,3 ± 0,30 restan + sterilisasi + ampas<br/><small>bisa diperbaiki besok pagi</small>"]
+  UNK["➜ TIDAK TERJELASKAN<br/>0,2 ± 0,30<br/><small>perlu diperiksa manusia</small>"]
+
+  TIMBANG --> M4
+  KAM --> M1
+  M4 -->|"4.280 kg ± 190"| GRADER
+  GRADER -->|"ya"| DB1
+  GRADER -->|"tidak"| MANUSIA
+  MANUSIA -->|"koreksi jadi data latih"| DB1
+
+  DB1 -->|"buah masuk proses"| MILL
+  MILL --> DB2
+  MILL --> DB3
+
+  DB1 -->|"potensi"| M5
+  DB2 -->|"loss terukur"| M5
+  DB3 -->|"CPO aktual"| M5
+
+  M6 --> DB4 --> KARTU
+  KARTU --> SUP
+  KARTU --> MIL
+  KARTU --> UNK
+
+  classDef supplier fill:#78350f,stroke:#d97706,color:#fde68a
+  classDef mill fill:#7f1d1d,stroke:#dc2626,color:#fecaca
+  classDef unknown fill:#374151,stroke:#6b7280,color:#e5e7eb
+  classDef hero fill:#064e3b,stroke:#10b981,color:#d1fae5
+  class SUP supplier
+  class MIL mill
+  class UNK unknown
+  class KARTU hero
 ```
 
 ### Struktur neraca tiga baris
@@ -276,17 +310,52 @@ tidak cukup yakin untuk mengambil alih keputusan manusia.
 Tiga komponen terpisah bersih, masing-masing dengan tanggung jawab
 tunggal:
 
-```
-┌─────────────────┐   HTTP    ┌─────────────────┐         ┌──────────┐
-│    frontend/    │ ────────► │    backend/     │ ──────► │   ai/    │
-│    Next.js      │  rewrites │    FastAPI      │  import │  model   │
-│                 │ ◄──────── │                 │ ◄────── │          │
-└─────────────────┘   JSON    └────────┬────────┘         └──────────┘
-                                       │
-                                       ▼
-                                 ┌──────────┐
-                                 │ Postgres │
-                                 └──────────┘
+```mermaid
+flowchart LR
+
+  subgraph FE["&nbsp;frontend/ · Next.js 15&nbsp;"]
+    direction TB
+    PAGE["app/<br/><small>page · neraca · batch/[id]</small>"]
+    COMP["components/<br/><small>grading · neraca · ui</small>"]
+    TYPE["types/<br/><small>cerminan schema backend</small>"]
+  end
+
+  subgraph BE["&nbsp;backend/ · FastAPI&nbsp;"]
+    direction TB
+    ROUTER["routers/<br/><small>URL, validasi, kode status</small>"]
+    SERVICE["services/<br/><small>orkestrasi + jembatan ke ai/</small>"]
+    SCHEMA["schemas/<br/><small>kontrak data Pydantic</small>"]
+    CORE["core/<br/><small>koneksi database</small>"]
+    ROUTER --> SERVICE
+    SERVICE --> SCHEMA
+    SERVICE --> CORE
+  end
+
+  subgraph AI["&nbsp;ai/ · tidak tahu HTTP maupun database&nbsp;"]
+    direction TB
+    PERC["perception/<br/><small>Model 1 · 2 · 4 · overlay</small>"]
+    REAS["reasoning/<br/><small>Model 5 · 6</small>"]
+    SIM["simulator/<br/><small>neraca massa pabrik</small>"]
+    CFG["config/<br/><small>coefficients.yaml + sitasi</small>"]
+    PERC -.->|"pakai koefisien"| CFG
+    REAS -.->|"pakai koefisien"| CFG
+  end
+
+  DB[("PostgreSQL 16<br/><small>JSONB untuk komposisi & atribusi</small>")]
+
+  PAGE -->|"fetch /api/*<br/>lewat rewrites"| ROUTER
+  ROUTER -->|"JSON"| PAGE
+  SERVICE -->|"import langsung"| PERC
+  SERVICE -->|"import langsung"| REAS
+  CORE <--> DB
+  SIM -.->|"data uji"| REAS
+
+  classDef fe fill:#1e3a8a,stroke:#3b82f6,color:#dbeafe
+  classDef be fill:#064e3b,stroke:#10b981,color:#d1fae5
+  classDef ai fill:#581c87,stroke:#a855f7,color:#f3e8ff
+  class PAGE,COMP,TYPE fe
+  class ROUTER,SERVICE,SCHEMA,CORE be
+  class PERC,REAS,SIM,CFG ai
 ```
 
 **Aturan lapisan:**
