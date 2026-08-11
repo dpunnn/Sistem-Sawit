@@ -23,9 +23,7 @@ VERSION = "0.1.0"
 async def lifespan(app: FastAPI):
     init_pool()
     # TODO(Phase 1.4.3): warm-up model detektor di sini.
-    # Jangan lazy-load: request pertama ke model yang belum dimuat bisa
-    # makan 10-20 detik, dan itu terlihat seperti sistem lambat kalau
-    # kebetulan terjadi saat live demo di depan juri.
+    
     yield
     close_pool()
 
@@ -44,11 +42,7 @@ app = FastAPI(
 
 @app.get("/api/health", tags=["system"])
 def health() -> dict:
-    """Membuktikan API dan Postgres benar-benar tersambung.
 
-    Dipakai healthcheck docker-compose (service `web` menunggu ini
-    sehat) dan saat merekam video proof of work.
-    """
     return {"status": "ok" if ping() else "degraded", "version": VERSION}
 
 

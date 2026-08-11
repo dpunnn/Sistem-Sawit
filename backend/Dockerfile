@@ -7,11 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# PENTING: torch versi CPU.
-# `pip install torch` biasa menarik seluruh CUDA runtime -> image ~5GB.
-# Wheel CPU menurunkannya ke ratusan MB. Training dilakukan di luar
-# Docker (GPU lokal); yang masuk container HANYA inferensi. Mesin juri
-# kemungkinan besar tidak punya GPU.
+
 RUN pip install --no-cache-dir \
         torch==2.5.1 torchvision==0.20.1 \
         --index-url https://download.pytorch.org/whl/cpu
