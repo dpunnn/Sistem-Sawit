@@ -45,9 +45,9 @@ tapi tidak ada yang bisa menjawab **"kenapa bukan 21%?"**
 
 Akibatnya setiap hari terjadi saling tuding tanpa bukti:
 
-| Pihak | Klaim |
-|---|---|
-| Pabrik | "buah petani jelek" |
+| Pihak  | Klaim                   |
+| ------ | ----------------------- |
+| Pabrik | "buah petani jelek"     |
 | Petani | "sortasi pabrik curang" |
 
 Dua-duanya menebak. Tidak ada yang bisa membuktikan. Sementara itu
@@ -107,7 +107,7 @@ tidak terkalibrasi, atau hal lain yang perlu investigasi.
 ```mermaid
 flowchart TD
 
-  subgraph GATE["&nbsp;🚚 GERBANG PKS — muatan masuk&nbsp;"]
+  subgraph GATE["  GERBANG PKS — muatan masuk "]
     direction TB
     TRUK["Truk TBS tiba<br/><small>pemasok swadaya / KUD / inti</small>"]
     TIMBANG["Jembatan Timbang<br/><small>berat bruto kg</small>"]
@@ -116,7 +116,7 @@ flowchart TD
     TRUK --> KAM
   end
 
-  subgraph L1["&nbsp;👁 LAPIS 1 — PERSEPSI · Apa yang masuk?&nbsp;"]
+  subgraph L1[" 👁 LAPIS 1 — PERSEPSI · Apa yang masuk? "]
     direction TB
     M1["<b>Model 1</b> · Deteksi ordinal per tandan<br/>CORAL loss, 7 kelas<br/><small>metrik: mAP + MAE indeks kelas</small>"]
     M2["<b>Model 2</b> · Permukaan → seluruh muatan<br/>inferensi di bawah observasi parsial<br/><small>output: selang terkalibrasi</small>"]
@@ -130,7 +130,7 @@ flowchart TD
 
   DB1[("grading_result<br/><small>composition JSONB · potensi ± selang</small>")]
 
-  subgraph MILL["&nbsp;🏭 PROSES PABRIK — oil loss diukur lab tiap hari&nbsp;"]
+  subgraph MILL["  PROSES PABRIK — oil loss diukur lab tiap hari "]
     direction LR
     ST["Sterilizer<br/><small>kondensat 1,83%</small>"]
     TH["Thresher<br/><small>janjang kosong 2,44%</small>"]
@@ -142,7 +142,7 @@ flowchart TD
   DB2[("station_loss")]
   DB3[("shift_output<br/><small>CPO aktual kg</small>")]
 
-  subgraph L2["&nbsp;🧮 LAPIS 2 — PENALARAN · Ke mana perginya?&nbsp;"]
+  subgraph L2["  LAPIS 2 — PENALARAN · Ke mana perginya? "]
     direction TB
     M5["<b>Model 5</b> · Rekonsiliasi neraca massa<br/>struktur 3 baris, deterministik<br/><small>teoretis → realistis → aktual</small>"]
     M6["<b>Model 6</b> · Atribusi kehilangan<br/>dekomposisi + optimasi berkendala<br/><small>tiap penyebab ± selang + ambang tindakan</small>"]
@@ -273,7 +273,7 @@ Aturan emas sistem ini:
 
 > ❌ "0,7 poin hilang karena buah mentah pemasok A"
 > ✅ "0,7 ± 0,25 poin — keyakinan sedang. Cukup untuk bahan diskusi,
->    belum cukup untuk memotong pembayaran."
+> belum cukup untuk memotong pembayaran."
 
 ### Perambatan ketidakpastian
 
@@ -295,11 +295,11 @@ Model 6 (atribusi per penyebab)   ±e5
 
 Dan setiap keluaran punya **ambang tindakan**:
 
-| Keyakinan | Boleh dipakai untuk |
-|---|---|
-| Rendah | hanya ditampilkan, tidak memicu apa pun |
-| Sedang | bahan diskusi / pemeriksaan manual |
-| Tinggi | boleh jadi dasar keputusan finansial |
+| Keyakinan | Boleh dipakai untuk                     |
+| --------- | --------------------------------------- |
+| Rendah    | hanya ditampilkan, tidak memicu apa pun |
+| Sedang    | bahan diskusi / pemeriksaan manual      |
+| Tinggi    | boleh jadi dasar keputusan finansial    |
 
 Ini bentuk konkret prinsip *learning to defer*: model tahu kapan dirinya
 tidak cukup yakin untuk mengambil alih keputusan manusia.
@@ -314,14 +314,14 @@ tunggal:
 ```mermaid
 flowchart LR
 
-  subgraph FE["&nbsp;frontend/ · Next.js 15&nbsp;"]
+  subgraph FE[" frontend/ · Next.js 15 "]
     direction TB
     PAGE["app/<br/><small>page · neraca · batch/[id]</small>"]
     COMP["components/<br/><small>grading · neraca · ui</small>"]
     TYPE["types/<br/><small>cerminan schema backend</small>"]
   end
 
-  subgraph BE["&nbsp;backend/ · FastAPI&nbsp;"]
+  subgraph BE[" backend/ · FastAPI "]
     direction TB
     ROUTER["routers/<br/><small>URL, validasi, kode status</small>"]
     SERVICE["services/<br/><small>orkestrasi + jembatan ke ai/</small>"]
@@ -332,7 +332,7 @@ flowchart LR
     SERVICE --> CORE
   end
 
-  subgraph AI["&nbsp;ai/ · tidak tahu HTTP maupun database&nbsp;"]
+  subgraph AI[" ai/ · tidak tahu HTTP maupun database "]
     direction TB
     PERC["perception/<br/><small>Model 1 · 2 · 4 · overlay</small>"]
     REAS["reasoning/<br/><small>Model 5 · 6</small>"]
@@ -395,17 +395,17 @@ POST /api/grade (upload foto)
 
 ## Stack Teknologi
 
-| Lapisan | Teknologi | Alasan pemilihan |
-|---|---|---|
-| Frontend | **Next.js 15** (App Router) + TypeScript | Pemisahan frontend–backend yang bersih; ekosistem matang |
-| Styling | **Tailwind CSS** | Warna semantik: sisi pemasok vs pabrik wajib beda warna agar terbaca sekali lihat |
-| Backend | **FastAPI** + Uvicorn | Validasi otomatis + dokumentasi OpenAPI di `/docs` tanpa menulis apa pun |
-| Kontrak data | **Pydantic v2** | Tipe `Estimate(value, lo, hi)` membuat selang ketidakpastian jadi kontrak resmi sistem, bukan tambahan di UI |
-| Database | **PostgreSQL 16** + psycopg 3 | `JSONB` untuk komposisi & atribusi yang strukturnya berubah-ubah dan tiap nilainya butuh selang |
-| Model | **PyTorch** (wheel CPU) | Inferensi harus jalan tanpa GPU di mesin penguji |
-| Ketidakpastian | quantile regression / ensemble | Cara termurah menghasilkan selang yang bisa dikalibrasi |
-| Penalaran | **NumPy + SciPy** | Deterministik, bisa diaudit baris per baris |
-| Kontainer | **Docker Compose** | Tiga service: `db`, `backend`, `frontend` |
+| Lapisan        | Teknologi                                      | Alasan pemilihan                                                                                              |
+| -------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Frontend       | **Next.js 15** (App Router) + TypeScript | Pemisahan frontend–backend yang bersih; ekosistem matang                                                     |
+| Styling        | **Tailwind CSS**                         | Warna semantik: sisi pemasok vs pabrik wajib beda warna agar terbaca sekali lihat                             |
+| Backend        | **FastAPI** + Uvicorn                    | Validasi otomatis + dokumentasi OpenAPI di`/docs` tanpa menulis apa pun                                     |
+| Kontrak data   | **Pydantic v2**                          | Tipe`Estimate(value, lo, hi)` membuat selang ketidakpastian jadi kontrak resmi sistem, bukan tambahan di UI |
+| Database       | **PostgreSQL 16** + psycopg 3            | `JSONB` untuk komposisi & atribusi yang strukturnya berubah-ubah dan tiap nilainya butuh selang             |
+| Model          | **PyTorch** (wheel CPU)                  | Inferensi harus jalan tanpa GPU di mesin penguji                                                              |
+| Ketidakpastian | quantile regression / ensemble                 | Cara termurah menghasilkan selang yang bisa dikalibrasi                                                       |
+| Penalaran      | **NumPy + SciPy**                        | Deterministik, bisa diaudit baris per baris                                                                   |
+| Kontainer      | **Docker Compose**                       | Tiga service:`db`, `backend`, `frontend`                                                                |
 
 ### Keputusan teknis yang perlu dijelaskan
 
@@ -452,12 +452,12 @@ docker compose up --build
 
 Buka **http://localhost:3000**
 
-| Alamat | Isi |
-|---|---|
-| http://localhost:3000 | Antarmuka utama |
-| http://localhost:3000/neraca | Kartu neraca harian |
-| http://localhost:8000/docs | Dokumentasi API interaktif (OpenAPI) |
-| http://localhost:8000/api/health | Cek koneksi backend ↔ database |
+| Alamat                           | Isi                                  |
+| -------------------------------- | ------------------------------------ |
+| http://localhost:3000            | Antarmuka utama                      |
+| http://localhost:3000/neraca     | Kartu neraca harian                  |
+| http://localhost:8000/docs       | Dokumentasi API interaktif (OpenAPI) |
+| http://localhost:8000/api/health | Cek koneksi backend ↔ database      |
 
 > **Estimasi waktu build pertama: 8–12 menit.** Sebagian besar dipakai
 > mengunduh PyTorch dan menjalankan `next build`. Build berikutnya jauh
@@ -524,14 +524,14 @@ semuanya dibangun di dalam container.
 
 Sebagian berkas sengaja tidak di-commit. Penanganannya berbeda-beda:
 
-| Berkas | Kenapa diabaikan | Cara mendapatkannya |
-|---|---|---|
-| `node_modules/` | ratusan MB, isinya beda per OS | `npm install` |
-| `.venv/`, `__pycache__/` | artefak lokal | `pip install -r requirements.txt` |
-| `.next/`, `.pytest_cache/` | hasil build | dibuat otomatis |
-| `.env` | tempat nilai rahasia | `cp .env.example .env` |
-| `data/raw/` | dataset publik, ribuan berkas | unduh sendiri dari sumber di bagian [Dataset](#dataset) |
-| `ai/weights/` | bobot model, berkas biner besar | lihat catatan di bawah |
+| Berkas                         | Kenapa diabaikan                | Cara mendapatkannya                                   |
+| ------------------------------ | ------------------------------- | ----------------------------------------------------- |
+| `node_modules/`              | ratusan MB, isinya beda per OS  | `npm install`                                       |
+| `.venv/`, `__pycache__/`   | artefak lokal                   | `pip install -r requirements.txt`                   |
+| `.next/`, `.pytest_cache/` | hasil build                     | dibuat otomatis                                       |
+| `.env`                       | tempat nilai rahasia            | `cp .env.example .env`                              |
+| `data/raw/`                  | dataset publik, ribuan berkas   | unduh sendiri dari sumber di bagian[Dataset](#dataset) |
+| `ai/weights/`                | bobot model, berkas biner besar | lihat catatan di bawah                                |
 
 Prinsipnya: **apa pun yang bisa dibangun ulang dari berkas yang sudah ada
 di repo, tidak ikut di-commit.** Yang di-commit hanya sumber kebenarannya
@@ -692,12 +692,12 @@ folder, bukan hanya dari diagram.
 
 Seluruh data citra berasal dari sumber publik berlisensi terbuka.
 
-| Dataset | Isi | Penggunaan |
-|---|---|---|
-| Oil Palm Fruit Bunch Piles (Nature Scientific Data) | Tumpukan TBS di bagian grading PKS Kalimantan Selatan, 6 kelas, format YOLO, CC-BY 4.0 | Pelatihan utama Model 1 |
-| Ordinal Ripeness Dataset (Mendeley) | 4.728 citra, 5 tingkat kematangan, Kalimantan Tengah, beragam perangkat | Pelatihan head ordinal & ketahanan lintas-kamera |
-| Outdoor FFB Ripeness (Data in Brief) | Johor, Negeri Sembilan, Perak — Malaysia | Uji domain adaptation (latih di Indonesia, uji di Malaysia) |
-| Trase — Indonesia Palm Oil Mills | Lokasi, kepemilikan, kapasitas seluruh PKS Indonesia | Analisis dampak & kelayakan adopsi (bukan pelatihan) |
+| Dataset                                             | Isi                                                                                    | Penggunaan                                                  |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Oil Palm Fruit Bunch Piles (Nature Scientific Data) | Tumpukan TBS di bagian grading PKS Kalimantan Selatan, 6 kelas, format YOLO, CC-BY 4.0 | Pelatihan utama Model 1                                     |
+| Ordinal Ripeness Dataset (Mendeley)                 | 4.728 citra, 5 tingkat kematangan, Kalimantan Tengah, beragam perangkat                | Pelatihan head ordinal & ketahanan lintas-kamera            |
+| Outdoor FFB Ripeness (Data in Brief)                | Johor, Negeri Sembilan, Perak — Malaysia                                              | Uji domain adaptation (latih di Indonesia, uji di Malaysia) |
+| Trase — Indonesia Palm Oil Mills                   | Lokasi, kepemilikan, kapasitas seluruh PKS Indonesia                                   | Analisis dampak & kelayakan adopsi (bukan pelatihan)        |
 
 **Catatan metodologis.** Split train/val/test dilakukan **per tumpukan**,
 bukan per gambar. Dataset utama dibangun dari video rotasi 360° sehingga
@@ -724,18 +724,18 @@ bisa diaudit dari satu berkas.
 
 Repositori ini dalam pengembangan aktif. Status jujur per commit terakhir:
 
-| Komponen | Status |
-|---|---|
-| Struktur proyek & Docker Compose | ✅ Selesai |
-| Kerangka backend + koneksi database | ✅ Selesai |
-| Kerangka frontend + proxy API | ✅ Selesai |
-| Skema & data awal database | 🔨 Dikerjakan |
-| Model 1 — deteksi ordinal | 🔨 Dikerjakan |
-| Model 2 — komposisi seluruh muatan | ⏳ Belum |
-| Model 4 — potensi minyak | ⏳ Belum |
-| Simulator pabrik + Model 5 — neraca | ⏳ Belum |
-| Model 6 — atribusi | ⏳ Belum |
-| Bobot model terlatih | ⏳ Belum tersedia |
+| Komponen                             | Status            |
+| ------------------------------------ | ----------------- |
+| Struktur proyek & Docker Compose     | ✅ Selesai        |
+| Kerangka backend + koneksi database  | ✅ Selesai        |
+| Kerangka frontend + proxy API        | ✅ Selesai        |
+| Skema & data awal database           | 🔨 Dikerjakan     |
+| Model 1 — deteksi ordinal           | 🔨 Dikerjakan     |
+| Model 2 — komposisi seluruh muatan  | ⏳ Belum          |
+| Model 4 — potensi minyak            | ⏳ Belum          |
+| Simulator pabrik + Model 5 — neraca | ⏳ Belum          |
+| Model 6 — atribusi                  | ⏳ Belum          |
+| Bobot model terlatih                 | ⏳ Belum tersedia |
 
 ---
 
