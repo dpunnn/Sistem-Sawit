@@ -1,0 +1,30 @@
+{
+  "hasil_uji": {
+    "CE": {
+      "akurasi": 0.7351752021563343,
+      "MAE_indeks": 0.31805929919137466,
+      "salah_>=2_tingkat": 0.05188679245283019
+    },
+    "CORAL": {
+      "akurasi": 0.6212938005390836,
+      "MAE_indeks": 0.45889487870619944,
+      "salah_>=2_tingkat": 0.07345013477088949
+    },
+    "CORAL+MLP": {
+      "akurasi": 0.6212938005390836,
+      "MAE_indeks": 0.4508086253369272,
+      "salah_>=2_tingkat": 0.06671159029649595
+    }
+  },
+  "epoch": {
+    "CE": 25,
+    "CORAL": 25,
+    "CORAL+MLP": 25
+  },
+  "terpilih": "CE",
+  "crop": {
+    "train": 7838,
+    "val": 1780,
+    "test": 1484
+  }
+}
