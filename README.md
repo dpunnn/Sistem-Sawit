@@ -525,8 +525,20 @@ npm run dev
 ### Menjalankan test
 
 ```bash
-cd backend
-pytest
+# uji lapis penalaran (Model 5 & 6) — 35 uji
+pytest tests/ -v
+
+# uji backend
+cd backend && pytest
+```
+
+Selain itu tiap modul AI punya swauji yang bisa dijalankan langsung:
+
+```bash
+python ai/simulator/mill.py            # 6 swauji neraca massa
+python ai/reasoning/balance.py         # peragaan kartu neraca dua mode
+python ai/reasoning/attribution.py     # pola yang ditemukan sendiri
+python ai/evaluation/rule_recovery.py  # pemulihan aturan + 4 uji ketahanan
 ```
 
 ---
@@ -757,12 +769,15 @@ Repositori ini dalam pengembangan aktif. Status jujur per commit terakhir:
 | Analisis dataset & pembangunan split sah | ✅ Selesai |
 | Model 1 — detektor tandan (3 kelas struktural) | ✅ mAP@50 **0,955** |
 | Head kematangan — penilaian per crop | ⚠️ akurasi **0,635** pada muatan campuran |
-| Model 2 — komposisi seluruh muatan | ⏳ Belum |
-| Model 4 — potensi minyak | ⏳ Belum |
-| Simulator pabrik + Model 5 — neraca | ⏳ Belum |
-| Model 6 — atribusi | ⏳ Belum |
+| Model 2 — komposisi seluruh muatan | ✅ cakupan **0,905**, selang di lantai teoretis |
+| Model 4 — potensi minyak | ✅ 3 uji akal sehat LULUS |
+| Simulator pabrik (6 swauji) | ✅ Selesai |
+| Model 5 — neraca tiga baris | ✅ **19/19** uji lulus, galat penutupan 0,00e+00 |
+| Model 6 — atribusi tanpa label | ✅ **4/5** aturan pulih, kosinus 0,93–0,9995 |
+| Tata kelola koefisien (34 angka, 0 tanpa sumber) | ✅ audit SEHAT |
 | Skema & data awal database | ⏳ Belum |
 | Integrasi model ke backend | ⏳ Belum |
+| Kartu neraca di antarmuka | ⏳ Belum |
 
 ### Temuan metodologis
 
@@ -788,6 +803,50 @@ Diperbaiki lewat rancangan faktorial 2×2:
 | Akurasi muatan campuran | 0,5160 | **0,6346** |
 | Kesalahan ≥2 tingkat | 9,17% | **1,50%** |
 | Selisih murni−campuran | 0,1178 | **0,0649** |
+
+**3. Selang Model 2 berada tepat di lantai pencuplikan teoretis.** Dengan n
+tandan terlihat dari muatan berisi ratusan, galat baku proporsi adalah
+`sqrt(p(1-p)/n)` — batas yang tidak bisa dilewati siapa pun secara jujur. Rasio
+lebar selang terhadap lantai itu: 0,999 / 1,017 / 1,122 / 1,010.
+
+Artinya model sudah memeras seluruh informasi yang tersedia dan tidak mengaku
+tahu lebih banyak. Konsekuensinya juga dinyatakan terbuka: **selang tidak bisa
+dipersempit dengan arsitektur yang lebih canggih**, hanya dengan menambah sudut
+kamera.
+
+Nilainya pun tidak merata. Pada muatan yang **ditata sengaja** ia memulihkan
++19,3% atas pendekatan naif; pada muatan jujur hanya +2,0%. Model 2 adalah
+mekanisme ketahanan terhadap penataan muatan, bukan penambah akurasi umum.
+
+**4. Buah mentah terbukti tidak dihitung dua kali.** Klaim keadilan tidak boleh
+berhenti sebagai paragraf, jadi ia diuji mekanis:
+
+| Yang diperiksa | Hasil |
+|---|---|
+| Pergeseran sisi pabrik saat mutu buah memburuk 0→40% mentah | **0,00e+00 poin** |
+| Kekekalan pemasok + tak terjelaskan | 2,66e-15 poin |
+| Pergeseran tagihan pemasok saat koefisien pabrik meleset ±15% | **0,000 poin** |
+
+Baris terakhir adalah sifat keadilan yang paling penting: ketika angka pabrik
+salah, yang bergeser adalah baris pabrik dan baris tak terjelaskan — bukan
+tagihan petani.
+
+**5. Model 6 menemukan kembali aturan yang tidak pernah diberitahukan padanya.**
+Simulator menanam lima jenis kerusakan; Model 6 hanya melihat delapan hasil ukur
+laboratorium per hari, tanpa label. Empat dari lima pulih dengan kosinus
+0,931–0,9995 (pemasangan Hungarian, bukan "ambil yang termirip").
+
+Yang kelima gagal, dan sebabnya bisa dihitung: `sludge_separator_tersumbat`
+berimpit tanda tangannya dengan `cst_dingin`. Tidak ada metode tanpa label yang
+bisa memisahkan dua sebab yang meninggalkan jejak sama — batasnya ada di
+datanya, bukan di modelnya.
+
+Ketahanannya juga diukur, dan arah kegagalannya benar: saat derau laboratorium
+naik ke 22%, yang memburuk lebih dulu adalah hari rusak yang terlewat (0% →
+19,4%), bukan tuduhan palsu. Sistem jadi pendiam, bukan jadi asal tuduh.
+
+**Riwayat minimum yang dibutuhkan: 120 hari giling.** Di bawah itu modul
+atribusi belum layak menunjuk sebab, dan sistem hanya menyajikan neraca.
 
 Dua intervensi yang diuji **gagal dan dilaporkan gagal**: memotong tepi crop
 sendirian justru merugikan, dan augmentasi agresif menghancurkan sinyal.

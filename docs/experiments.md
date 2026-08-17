@@ -440,6 +440,232 @@ bukan pekerjaan arsitektur.
 
 ---
 
+## 7. Komposisi muatan dari permukaan (Model 2)
+
+Persoalannya bukan klasifikasi melainkan **inferensi statistik di bawah
+observasi parsial**: menaksir komposisi seluruh muatan dari lapisan permukaan
+yang terlihat kamera. Dua sumber ketidakpastiannya berbeda sifat, dan hanya
+satu yang bisa dikurangi.
+
+### Kenapa datanya harus dibuat sendiri
+
+Kebenaran "komposisi seluruh muatan" tidak ada di dataset mana pun. Mengukurnya
+berarti membongkar dan menyortir satu truk penuh secara manual. Jalan keluarnya:
+menyusun 45.000 muatan buatan dari 11.102 crop tandan **berlabel nyata**,
+sehingga komposisi sebenarnya diketahui sempurna.
+
+Dua mekanisme bias dimodelkan: tandan besar tenggelam (penumpukan) dan buah
+bagus ditaruh di atas (penataan sengaja). Yang pertama dasar empirisnya lemah
+dan disebut demikian - ukuran kotak antar tingkat kematangan hanya berselisih
+11% (rasio 1,114). Karena itu kekuatannya diacak termasuk nol, dan ketahanan
+model terhadap kesalahan asumsi ini diuji terpisah.
+
+### Lantai pencuplikan - batas yang tidak bisa dilewati siapa pun
+
+Dengan n tandan terlihat dari muatan berisi ratusan, galat baku proporsi adalah
+`sqrt(p(1-p)/n)`. Model yang melaporkan selang lebih sempit dari itu bukan
+pintar, melainkan berbohong. Nilai tambah Model 2 adalah mengoreksi **bias**,
+bukan mengecilkan ragam.
+
+### Hasil
+
+| Ukuran | Nilai |
+|---|---|
+| MAE proporsi | 0,0548 |
+| MAE pendekatan naif (permukaan apa adanya) | 0,0605 |
+| Perbaikan relatif | +9,3% |
+| Cakupan selang 90% sebelum kalibrasi | 0,8726 |
+| Cakupan setelah kalibrasi conformal (CQR) | **0,9046** |
+| Rasio lebar selang terhadap lantai pencuplikan | 0,999 / 1,017 / 1,122 / 1,010 |
+
+Rasio mendekati 1,0 di seluruh tingkat berarti model berada tepat di lantai
+teoretis: sudah memeras seluruh informasi yang tersedia, dan tidak mengaku tahu
+lebih banyak. Konsekuensinya juga harus dinyatakan - **selang tidak bisa
+dipersempit dengan arsitektur yang lebih canggih**, hanya dengan menambah
+jumlah tandan yang terlihat.
+
+### Di mana nilainya terkonsentrasi
+
+| Karakter muatan | Perbaikan atas pendekatan naif |
+|---|---|
+| Ditata sengaja | **+19,3%** |
+| Tidak ditata (jujur) | +2,0% |
+
+Model 2 bukan penambah akurasi umum melainkan **mekanisme ketahanan terhadap
+penataan muatan**. Pada muatan jujur koreksinya nyaris nihil - dan memang
+seharusnya begitu.
+
+### Ketahanan terhadap asumsi yang lemah
+
+MAE dipecah menurut kekuatan mekanisme tenggelam, termasuk nol: 0,0549 /
+0,0551 / 0,0546. Rentangnya 0,00048, atau 0,88% dari MAE rerata. Model tidak
+bergantung pada asumsi yang dasar empirisnya tipis.
+
+---
+
+## 8. Potensi minyak dan neraca tiga baris (Model 4 & 5)
+
+### Tata kelola koefisien
+
+Setiap angka domain wajib punya `sumber` dan `status`. Loader menolak koefisien
+tanpa sumber, dan menolak koefisien berstatus `perlu_verifikasi` kecuali
+diizinkan secara eksplisit. Audit terakhir: **34 koefisien, 0 tanpa sumber,
+22 terverifikasi, 12 perlu verifikasi - SEHAT**.
+
+### Kesalahan satuan yang tertangkap tata kelola
+
+Nilai kehilangan minyak dari studi kasus (kondensat 1,83 ... underflow CST
+7,04) sempat dicatat bersatuan `persen_terhadap_tbs`. Dibaca begitu, totalnya
+18,01 dan rendemen akhir jatuh ke ~3% - mustahil. Angka itu sebenarnya **kadar
+minyak di dalam aliran** (persen terhadap contoh), dan harus dikalikan nisbah
+massa aliran terhadap TBS untuk menjadi poin rendemen.
+
+Nisbah massanya sendiri taksiran teknik, bukan kutipan terbit, dan berstatus
+`perlu_verifikasi`. Yang membuatnya layak dipakai sementara: jumlah kadar x
+nisbah mendarat di **1,670 poin**, sesuai norma industri 1,5-1,75 poin untuk
+pabrik terkelola baik.
+
+### Model 4 - uji akal sehat
+
+| Uji | Hasil |
+|---|---|
+| Muatan 100% matang | 21,00 poin - LULUS |
+| Muatan 100% mentah | 8,00 poin - LULUS |
+| Monoton menurun terhadap proporsi mentah | LULUS |
+
+Disiplin koefisien terlihat dampaknya: pada muatan dengan 20% buah non-masak,
+mode `terverifikasi` melaporkan 1.182 kg sedangkan mode `lengkap` 1.144 kg.
+Selisih itu bukan galat melainkan penolakan memakai dua penalti yang belum
+tertelusur. Arah kesalahannya disengaja - kalau ragu, jangan merugikan petani.
+
+### Model 5 - kenapa tiga baris, bukan dua
+
+Neraca dua baris membuat buah mentah dihitung **dua kali**: sekali karena
+menurunkan kandungan minyak yang masuk, sekali lagi karena pabrik yang
+memproses buah mentah memang mencatat kehilangan lebih tinggi. Baris tengah
+(potensi realistis) memutus rantai itu.
+
+Sifat tersebut diuji mekanis, bukan diyakini:
+
+| Yang diperiksa | Hasil |
+|---|---|
+| Galat penutupan aritmetika | 0,00e+00 |
+| Pergeseran sisi pabrik saat mutu buah memburuk 0-40% mentah | **0,00e+00 poin** |
+| Kekekalan pemasok + tak terjelaskan | 2,66e-15 poin |
+| Sisa tak terjelaskan saat koefisien sama persis dengan simulator | tepat 0,000 |
+| Jumlah uji lulus | 19/19 |
+
+Sisa tepat nol pada mode lengkap membuktikan aritmetikanya eksak - sehingga
+2,005 poin yang muncul di mode terverifikasi benar-benar berasal dari koefisien
+yang ditolak, bukan dari salah hitung.
+
+### Simulator pabrik
+
+Data proses harian pabrik tidak publik. Simulator deterministik dan seedable
+menggantikannya, dengan enam swauji yang harus lolos sebelum boleh dipakai -
+termasuk pemeriksaan silang bahwa rugi komposisi identik dengan Model 4.
+
+Pemeriksaan itu menangkap kesalahan nyata: konvensi penalti kematangan sempat
+meleset **100x** (fraksi vs persen), dan neraca tetap terlihat masuk akal karena
+angkanya kebetulan mendarat dekat rendemen petani swadaya yang terpublikasi.
+
+### Pertentangan antar koefisien terbit yang harus disebut
+
+Supaya neraca menutup tepat di rendemen TBS petani swadaya yang terpublikasi
+(18,88 poin), buah mentah harus hanya **3,5%** dan sisanya sempurna. Laporan
+lapangan menyebut 10-15%. Selisih itu nyata, berasal dari koefisien terbit yang
+saling bertentangan, dan justru itulah yang dilaporkan Model 5 sebagai bagian
+tak terjelaskan - bukan disembunyikan dengan menyetel salah satu angka.
+
+---
+
+## 9. Atribusi tanpa label dan pemulihan aturan (Model 6)
+
+### Kenapa tanpa label
+
+Di pabrik nyata label kerusakan tidak ada; tidak ada operator yang mencatat
+"hari ini sterilizer kurang tekanan" dalam bentuk yang bisa dilatih. Metode
+yang butuh label hanya bisa didemokan, tidak bisa dipasang. Model 6 hanya
+melihat delapan hasil ukur laboratorium per hari.
+
+Ia harus menentukan sendiri berapa banyak pola kerusakan yang ada (lewat
+siluet, bukan ditetapkan), memulihkan bentuk tiap pola, menamai hari
+berikutnya, dan mengaku tidak tahu ketika polanya tidak cocok dengan apa pun.
+
+### Cara mengukurnya
+
+Tiap gangguan yang ditanam punya tanda tangan sebenarnya berupa vektor arah
+kenaikan delapan aliran. Pola temuan juga vektor arah. Kecocokannya diukur
+dengan kosinus, lalu **dipasangkan satu-satu memakai Hungarian** - tanpa itu,
+satu pola bagus bisa diklaim sebagai keberhasilan untuk lima gangguan sekaligus.
+
+### Hasil
+
+| Gangguan ditanam | Pola temuan | Kosinus | Pulih |
+|---|---|---|---|
+| perebusan_kurang_matang | naik janjang+ampas | 0,9976 | ya |
+| perebusan_berlebih | naik kondensat | 0,9995 | ya |
+| kempa_aus | naik nut+ampas | 0,9992 | ya |
+| cst_dingin | naik sludge+underflow | 0,9307 | ya |
+| sludge_separator_tersumbat | - | 0,0042 | **tidak** |
+
+Siluet kelompok 0,837. Salah tuduh hari normal 5,1%; hari rusak terlewat 0,0%.
+
+Dua arah acak di ruang delapan dimensi rata-rata berkosinus nol dengan simpangan
+sekitar 0,35 - kosinus 0,93-0,9995 terhadap pola yang tidak pernah diperlihatkan
+bukan kebetulan.
+
+### Kegagalan yang punya sebab, bukan misteri
+
+`sludge_separator_tersumbat` dan `cst_dingin` sama-sama menaikkan sludge
+separator dan fat pit; kosinus antar tanda tangan aslinya sudah di atas 0,5.
+Tidak ada metode tanpa label yang bisa memisahkan dua sebab yang meninggalkan
+jejak sama. Batasnya ada di datanya, bukan di modelnya - menembusnya butuh
+sensor tambahan, bukan lapisan jaringan tambahan.
+
+### Ketahanan
+
+| Derau ukur | Pola | Pulih | Kosinus rerata | Salah tuduh | Terlewat |
+|---|---|---|---|---|---|
+| 0,06 | 6 | 4 | 0,786 | 5,1% | 0,0% |
+| 0,10 | 6 | 4 | 0,769 | 7,0% | 0,0% |
+| 0,15 | 7 | 4 | 0,803 | 9,0% | 4,9% |
+| 0,22 | 6 | 4 | 0,745 | 9,4% | 19,4% |
+
+Yang memburuk lebih dulu adalah hari rusak yang terlewat, bukan tuduhan palsu.
+Arah kegagalannya benar: sistem jadi pendiam, bukan jadi asal tuduh.
+
+Perancu berarah (penuaan yang hanya menyentuh tiga aliran) diuji karena bentuk
+inilah yang paling mungkin disangka kerusakan. Pemulihan bertahan 4/5 dan salah
+tuduh tetap ~5% sampai penuaan 35%. Perancu ini tidak melahirkan tuduhan baru.
+
+| Panjang riwayat | Pola | Pulih | Kosinus rerata | Salah tuduh |
+|---|---|---|---|---|
+| 60 hari | 1 | 1 | 0,200 | 14,6% |
+| 120 hari | 4 | 4 | 0,797 | 8,3% |
+| 250 hari | 6 | 4 | 0,762 | 6,4% |
+| 400 hari | 6 | 4 | 0,786 | 5,1% |
+| 800 hari | 5 | 4 | 0,746 | 2,6% |
+
+**60 hari tidak cukup.** Modul atribusi baru boleh dinyalakan setelah sekitar
+empat bulan giling; sampai saat itu sistem menyajikan neraca tanpa menunjuk
+sebab, dan itu harus jadi perilaku bawaan saat dipasang.
+
+### Sensitivitas koefisien - sifat keadilan yang terukur
+
+Nisbah massa meleset +/-15%:
+
+| | Sisi pemasok | Sisi pabrik | Tak terjelaskan |
+|---|---|---|---|
+| Rentang pergeseran | **0,000 poin** | 0,502 poin | 0,502 poin |
+
+Tagihan pemasok tidak bergerak satu poin pun. Itu akibat langsung struktur tiga
+baris: koefisien sisi pabrik tidak pernah masuk ke perhitungan potensi
+realistis. Pihak yang paling lemah posisinya terlindung dari ketidaktahuan
+sistem, bukan menanggungnya.
+
+---
+
 ## Ringkasan klaim yang boleh dibuat
 
 1. Split resmi dataset publik yang dipakai **terbukti bocor sepenuhnya**, dan
@@ -461,6 +687,23 @@ bukan pekerjaan arsitektur.
    dengan kesalahan berat turun 9,17% → 1,50%.
 7. Dua intervensi yang diuji **gagal dan dilaporkan gagal**: memotong tepi crop
    sendirian justru merugikan, dan augmentasi agresif menghancurkan sinyal.
+8. Model 2 memberi selang yang lebarnya berada **tepat di lantai pencuplikan
+   teoretis** (rasio 0,999-1,122) dengan cakupan 0,9046 setelah kalibrasi
+   conformal - memeras seluruh informasi yang tersedia tanpa mengaku tahu lebih.
+9. Nilai Model 2 **terkonsentrasi pada muatan yang ditata sengaja** (+19,3%)
+   dan nyaris nihil pada muatan jujur (+2,0%): ia mekanisme ketahanan terhadap
+   penataan muatan, bukan penambah akurasi umum.
+10. Neraca tiga baris **terbukti tidak menghitung buah mentah dua kali**:
+    memburukkan mutu buah dari 0% ke 40% mentah menggeser sisi pabrik sebesar
+    0,00e+00 poin. 19 uji lulus.
+11. Galat koefisien pabrik +/-15% **tidak menggeser tagihan pemasok sama sekali**
+    (0,000 poin); seluruhnya mendarat di sisi pabrik dan baris tak terjelaskan.
+12. Model 6 **menemukan kembali 4 dari 5 aturan sebab-akibat** yang tidak pernah
+    diperlihatkan padanya, dengan kosinus 0,931-0,9995 dan pemasangan Hungarian.
+13. Kegagalan yang tersisa **punya sebab yang bisa dihitung**: dua gangguan
+    dengan tanda tangan berimpit tidak dapat dipisahkan metode tanpa label.
+14. Kebutuhan riwayat minimum terukur: **120 hari giling** sebelum modul
+    atribusi layak dinyalakan.
 
 ## Yang TIDAK boleh diklaim
 
@@ -475,3 +718,16 @@ bukan pekerjaan arsitektur.
   ambang **keyakinan sedang** — bahan diskusi, bukan dasar potongan pembayaran.
 - Bahwa perbaikan jalan pintas sudah tuntas. Selisih murni−campuran mengecil
   tetapi belum nol; akar masalahnya komposisi dataset, bukan arsitektur.
+- **Bahwa Model 2 sudah divalidasi terhadap kenyataan.** Ia diuji terhadap
+  simulatornya sendiri. Kebenaran sesungguhnya - komposisi satu truk penuh -
+  memerlukan pembongkaran dan penyortiran manual yang belum dilakukan. Yang
+  terbukti adalah metodenya benar, bukan akurasi lapangannya.
+- **Bahwa Model 5 dan 6 sudah divalidasi terhadap pabrik nyata.** Keduanya diuji
+  di atas simulator. Yang terbukti adalah aritmetika neracanya eksak dan
+  atribusinya memulihkan gangguan yang ditanam.
+- Bahwa nisbah massa aliran sudah sahih. Angka itu taksiran teknik berstatus
+  `perlu_verifikasi`, diterima sementara karena jumlahannya mendarat di norma
+  industri. Harus diganti dengan nisbah terukur dari satu pabrik nyata sebelum
+  sistem menyentuh keputusan pembayaran.
+- Bahwa modul atribusi bisa dinyalakan sejak hari pertama pemasangan. Di bawah
+  120 hari riwayat, ia belum layak menunjuk sebab.
