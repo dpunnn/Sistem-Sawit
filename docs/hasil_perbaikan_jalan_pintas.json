@@ -1,0 +1,61 @@
+{
+  "varian": {
+    "V0": {
+      "nama": "dasar (pad +10%, semua)",
+      "akurasi_semua": 0.7479784366576819,
+      "MAE_semua": 0.2857142857142857,
+      "akurasi_murni": 0.7852216748768472,
+      "akurasi_campuran": 0.6673773987206824,
+      "MAE_campuran": 0.417910447761194,
+      "salah2_campuran": 0.08315565031982942,
+      "selisih": 0.11784427615616488,
+      "n_latih": 7838
+    },
+    "V1": {
+      "nama": "inset -10%, semua",
+      "akurasi_semua": 0.7093728927848955,
+      "MAE_semua": 0.3452461227242077,
+      "akurasi_murni": 0.7635467980295566,
+      "akurasi_campuran": 0.5918803418803419,
+      "MAE_campuran": 0.45726495726495725,
+      "salah2_campuran": 0.04700854700854701,
+      "selisih": 0.17166645614921472,
+      "n_latih": 7835
+    },
+    "V2": {
+      "nama": "pad +10%, hanya campuran",
+      "akurasi_semua": 0.5242587601078167,
+      "MAE_semua": 0.532345013477089,
+      "akurasi_murni": 0.5083743842364532,
+      "akurasi_campuran": 0.55863539445629,
+      "MAE_campuran": 0.464818763326226,
+      "salah2_campuran": 0.021321961620469083,
+      "selisih": -0.050261010219836755,
+      "n_latih": 3417
+    },
+    "V3": {
+      "nama": "inset -10%, hanya campuran",
+      "akurasi_semua": 0.6790289952798382,
+      "MAE_semua": 0.34389750505731626,
+      "akurasi_murni": 0.6995073891625616,
+      "akurasi_campuran": 0.6346153846153846,
+      "MAE_campuran": 0.38247863247863245,
+      "salah2_campuran": 0.014957264957264958,
+      "selisih": 0.06489200454717703,
+      "n_latih": 3417
+    },
+    "V4": {
+      "nama": "inset + campuran + aug kuat",
+      "akurasi_semua": 0.6729602157788267,
+      "MAE_semua": 0.3830074173971679,
+      "akurasi_murni": 0.7330049261083744,
+      "akurasi_campuran": 0.5427350427350427,
+      "MAE_campuran": 0.5448717948717948,
+      "salah2_campuran": 0.08547008547008547,
+      "selisih": 0.19026988337333173,
+      "n_latih": 3417
+    }
+  },
+  "tolok_ukur": "akurasi pada crop tumpukan campuran di sisi uji",
+  "tebakan_acak": 0.25
+}
