@@ -1,0 +1,92 @@
+{
+  "konfigurasi": {
+    "model": "yolov8s.pt",
+    "imgsz": 416,
+    "epochs": 60,
+    "patience": 15,
+    "batch": 16,
+    "seed": 42,
+    "hsv_h": 0.015,
+    "hsv_s": 0.7,
+    "hsv_v": 0.5,
+    "degrees": 8.0,
+    "translate": 0.1,
+    "scale": 0.4,
+    "fliplr": 0.5,
+    "mosaic": 1.0,
+    "close_mosaic": 10
+  },
+  "A_per_tumpukan": {
+    "global": {
+      "mAP50": 0.9550415308253636,
+      "mAP50_95": 0.7891941579380787,
+      "precision": 0.830908010446739,
+      "recall": 0.9397486008210425
+    },
+    "per_kelas": {
+      "tandan": {
+        "precision": 0.9316909072845934,
+        "recall": 0.9926204154662231,
+        "mAP50": 0.9915227484227307,
+        "mAP50_95": 0.8530438382807837
+      },
+      "janjang_kosong": {
+        "precision": 0.6800121368352399,
+        "recall": 1.0,
+        "mAP50": 0.9725413167715613,
+        "mAP50_95": 0.8282257424676912
+      },
+      "abnormal": {
+        "precision": 0.8810209872203838,
+        "recall": 0.826625386996904,
+        "mAP50": 0.9010605272817986,
+        "mAP50_95": 0.6863128930657608
+      }
+    },
+    "epoch": 58,
+    "dir": "D:\\LOMBA\\COMPFEST\\neraca-minyak\\ai\\weights\\runs\\A_per_tumpukan"
+  },
+  "B_split_resmi": {
+    "global": {
+      "mAP50": 0.9948400358702765,
+      "mAP50_95": 0.8712481399131136,
+      "precision": 0.9941714393762814,
+      "recall": 0.99156344495309
+    },
+    "per_kelas": {
+      "tandan": {
+        "precision": 0.9932855015755285,
+        "recall": 0.9990557129367328,
+        "mAP50": 0.9947862673066472,
+        "mAP50_95": 0.8943086971367011
+      },
+      "janjang_kosong": {
+        "precision": 0.9931109402590793,
+        "recall": 1.0,
+        "mAP50": 0.995,
+        "mAP50_95": 0.8766038880703435
+      },
+      "abnormal": {
+        "precision": 0.9961178762942362,
+        "recall": 0.9756346219225374,
+        "mAP50": 0.9947338403041823,
+        "mAP50_95": 0.8428318345322967
+      }
+    },
+    "dir": "D:\\LOMBA\\COMPFEST\\neraca-minyak\\ai\\weights\\runs\\B_split_resmi"
+  },
+  "murni_vs_campuran": {
+    "murni": {
+      "mAP50": 0.938286590930447,
+      "mAP50_95": 0.7664762114104116,
+      "precision": 0.8137211974934152,
+      "recall": 0.9274651326977579
+    },
+    "campuran": {
+      "mAP50": 0.9907522009471982,
+      "mAP50_95": 0.8359445575260089,
+      "precision": 0.9481288958871563,
+      "recall": 0.9775348828687687
+    }
+  }
+}
