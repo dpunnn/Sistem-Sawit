@@ -10,10 +10,25 @@ node_modules/
 next-env.d.ts
 
 # Model & data besar
-ai/weights/*
-!ai/weights/.gitkeep
-data/raw/
-data/processed/
+# Yang DI-COMMIT hanya bobot yang dibutuhkan untuk menjalankan sistem:
+#   ai/weights/runs/A_per_tumpukan/weights/best.pt   (detektor, 22 MB)
+#   ai/weights/head_ordinal_v3_inset_campuran.pt     (kematangan, 43 MB)
+# Sisanya artefak eksperimen yang bisa dibangun ulang dari notebook.
+ai/weights/cache/
+**/last.pt
+ai/weights/runs/B_split_resmi/weights/
+ai/weights/head_ordinal.pt
+ai/weights/head_ordinal_v2.pt
+
+# Dataset: isinya diabaikan, tapi STRUKTUR FOLDER tetap ikut repo
+# supaya anggota tim tahu persis di mana menaruh hasil unduhan.
+data/raw/**
+data/processed/**
+data/interim/**
+!data/raw/**/
+!data/processed/**/
+!data/interim/**/
+!**/.gitkeep
 
 # Env & artefak
 .env

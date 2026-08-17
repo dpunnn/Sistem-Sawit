@@ -1,0 +1,25 @@
+# Dependensi PELATIHAN — dijalankan di mesin lokal ber-GPU, TIDAK masuk
+# container. Image inferensi memakai backend/requirements.txt yang sengaja
+# memakai torch versi CPU supaya tetap ringan di mesin penguji.
+#
+# Pasang torch CUDA lebih dulu, terpisah:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+# --- Deteksi objek ---
+ultralytics==8.3.55          # CATATAN LISENSI: AGPL-3.0
+
+# --- Analisis & notebook ---
+numpy>=2.0
+pandas>=2.2
+matplotlib>=3.9
+seaborn>=0.13
+scikit-learn>=1.5
+jupyter>=1.1
+nbformat>=5.10
+nbconvert>=7.16
+
+# --- Citra & utilitas ---
+opencv-python>=4.10
+pillow>=11.0
+pyyaml>=6.0
+tqdm>=4.66
