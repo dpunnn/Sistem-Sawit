@@ -34,3 +34,8 @@ data/interim/**
 .env
 .env.local
 *.log
+
+# Bobot pra-terlatih yang diunduh otomatis oleh ultralytics saat training.
+# Tidak perlu di-commit: akan diunduh ulang sendiri bila dibutuhkan.
+ai/notebooks/*.pt
+yolo*.pt
