@@ -1,0 +1,87 @@
+{
+  "per_kelas": {
+    "mentah": {
+      "MAE_model": 0.05307585999633245,
+      "MAE_naif": 0.056734511615482916,
+      "perbaikan_relatif": 0.06448723210921262,
+      "cakupan_90": 0.9006,
+      "lebar_selang": 0.21636728447215697,
+      "lantai_pencuplikan_90": 0.2165694352029302,
+      "rasio_lebar_thd_lantai": 0.9990665777440672
+    },
+    "kurang_masak": {
+      "MAE_model": 0.05181948243125783,
+      "MAE_naif": 0.0589497733030676,
+      "perbaikan_relatif": 0.1209553569468728,
+      "cakupan_90": 0.9112,
+      "lebar_selang": 0.2190149287174469,
+      "lantai_pencuplikan_90": 0.21531897569811068,
+      "rasio_lebar_thd_lantai": 1.017165013010828
+    },
+    "masak": {
+      "MAE_model": 0.06055597312215439,
+      "MAE_naif": 0.06826009850434486,
+      "perbaikan_relatif": 0.1128642581976364,
+      "cakupan_90": 0.9052,
+      "lebar_selang": 0.24232332299582832,
+      "lantai_pencuplikan_90": 0.21598338048569518,
+      "rasio_lebar_thd_lantai": 1.12195356166248
+    },
+    "terlalu_masak": {
+      "MAE_model": 0.0539483229824623,
+      "MAE_naif": 0.05802793742228522,
+      "perbaikan_relatif": 0.07030431583556813,
+      "cakupan_90": 0.9014,
+      "lebar_selang": 0.21944498460011136,
+      "lantai_pencuplikan_90": 0.21734207043947995,
+      "rasio_lebar_thd_lantai": 1.0096755964290722
+    }
+  },
+  "ringkas": {
+    "MAE_model_rerata": 0.05484990963305174,
+    "MAE_naif_rerata": 0.06049308021129515,
+    "perbaikan_relatif": 0.09328621651488879,
+    "cakupan_90_rerata": 0.9045999999999998,
+    "n_muatan": 5000
+  },
+  "cakupan_sebelum_kalibrasi": 0.87255,
+  "pecahan_karakter": {
+    "ditata sengaja": {
+      "MAE_model_rerata": 0.07167240423559615,
+      "MAE_naif_rerata": 0.0888001598473313,
+      "perbaikan_relatif": 0.19287978356324878,
+      "cakupan_90_rerata": 0.8599722029186936,
+      "n_muatan": 1439
+    },
+    "tidak ditata": {
+      "MAE_model_rerata": 0.0480519400365728,
+      "MAE_naif_rerata": 0.04905419012529233,
+      "perbaikan_relatif": 0.020431487833345516,
+      "cakupan_90_rerata": 0.9226340915473182,
+      "n_muatan": 3561
+    }
+  },
+  "ketahanan_tenggelam": {
+    "0.0-0.5": {
+      "MAE_model_rerata": 0.05493211947422502,
+      "MAE_naif_rerata": 0.06009130877710377,
+      "perbaikan_relatif": 0.08585583186439977,
+      "cakupan_90_rerata": 0.902694610778443,
+      "n_muatan": 1002
+    },
+    "0.5-1.5": {
+      "MAE_model_rerata": 0.055074482748241955,
+      "MAE_naif_rerata": 0.06126953130743817,
+      "perbaikan_relatif": 0.10111140769317634,
+      "cakupan_90_rerata": 0.9051067073170731,
+      "n_muatan": 1968
+    },
+    "1.5-2.5": {
+      "MAE_model_rerata": 0.054591616947559166,
+      "MAE_naif_rerata": 0.059938656181664746,
+      "perbaikan_relatif": 0.08920852709642899,
+      "cakupan_90_rerata": 0.9050492610837438,
+      "n_muatan": 2030
+    }
+  }
+}

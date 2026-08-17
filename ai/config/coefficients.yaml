@@ -1,0 +1,324 @@
+# =====================================================================
+# KOEFISIEN DOMAIN — NERACA MINYAK
+# =====================================================================
+#
+# Berkas ini adalah SATU-SATUNYA tempat pengetahuan domain sawit hidup.
+# Kode tidak boleh menuliskan angka rendemen atau oil loss secara langsung.
+#
+# Alasannya dua:
+#   1. Keluaran sistem ini dipakai memotong pembayaran petani. Dasar
+#      perhitungannya harus bisa ditelusuri dan diperdebatkan, bukan
+#      terkubur di dalam kode.
+#   2. Koefisien berbeda antar pabrik dan antar wilayah. Memisahkannya
+#      memungkinkan penyesuaian per pabrik tanpa menyentuh logika.
+#
+# ATURAN WAJIB
+#   - Setiap angka punya `sumber` yang merujuk ke blok `sumber:` di bawah.
+#   - Setiap angka punya `status`:
+#       terverifikasi      -> sudah dicek ke sumber, boleh dipakai
+#       perlu_verifikasi   -> BELUM dicek atau basisnya ambigu; loader
+#                             MENOLAK memakainya kecuali diminta eksplisit
+#   - Angka tanpa sumber akan ditolak loader. Ini ditegakkan kode, bukan
+#     niat baik (lihat ai/config/coefficients.py).
+#
+# =====================================================================
+
+meta:
+  versi: "0.1.0"
+  diperbarui: "2026-08-15"
+  catatan: >
+    Nilai default diambil dari literatur publik Indonesia. Untuk penerapan
+    di satu pabrik tertentu, koefisien wajib dikalibrasi ulang terhadap
+    hasil laboratorium pabrik itu sendiri.
+
+# ---------------------------------------------------------------------
+# SUMBER — dirujuk memakai kuncinya
+# ---------------------------------------------------------------------
+sumber:
+  gapki_2026:
+    judul: "Kinerja Sawit 2025: Produksi Naik, Ekspor Tembus Rp590 Triliun"
+    penerbit: "GAPKI"
+    tahun: 2026
+    url: "https://gapki.id/news/2026/03/13/kinerja-sawit-2025-menguat-produksi-naik-ekspor-tembus-rp590-triliun/"
+
+  warta_ppks_rendemen:
+    judul: "Evaluasi Rendemen CPO dan Kernel TBS Petani"
+    penerbit: "WARTA PPKS"
+    url: "https://warta.iopri.org/index.php/Warta/article/view/251"
+
+  instiper_kematangan:
+    judul: "Analisis Rendemen CPO berdasarkan Tingkat Kematangan Buah"
+    penerbit: "Jurnal INSTIPER"
+    url: "https://jurnal.instiperjogja.ac.id/index.php/JOM/article/view/807"
+
+  iop_ripening:
+    judul: "Palm Oil Yield Potency on Different Levels of Ripening"
+    penerbit: "IOP Conf. Series: Earth and Environmental Science"
+    url: "https://iopscience.iop.org/article/10.1088/1755-1315/443/1/012005/pdf"
+
+  six_sigma_oil_losses:
+    judul: >
+      Analisis Pengendalian Kehilangan Minyak (Oil Losses) pada CPO
+      Menggunakan Metode Six Sigma
+    url: "https://www.researchgate.net/publication/376049675"
+
+  instiper_oil_losses:
+    judul: "Kajian Evaluasi Kehilangan Minyak (Oil Losses)"
+    penerbit: "INSTIPER"
+    url: "https://eprints.instiperjogja.ac.id/id/eprint/1963/9/JURNAL_21387.pdf"
+
+  infosawit_harga:
+    judul: "Harga Referensi CPO Maret 2026"
+    penerbit: "InfoSAWIT"
+    url: "https://www.infosawit.com/2026/02/28/harga-referensi-cpo-maret-2026-menguat-ke-us-93887-mt-bea-keluar-dipatok-us-124-per-mt/"
+
+  parameter_operasional:
+    judul: "Parameter operasional pabrik — bukan nilai dari literatur"
+    catatan: >
+      Nilai yang ditetapkan operator pabrik saat pemasangan, bukan hasil
+      penelitian. Wajib diperbarui berkala oleh pengguna, dan tidak boleh
+      diperlakukan sebagai temuan ilmiah.
+
+  alat_ukur_grading:
+    judul: "Pengukuran Kualitas TBS Pabrik Sawit: Rendemen, ALB, Sistem Grading"
+    url: "https://alat-ukur-indonesia.com/pengukuran-kualitas-tbs-pabrik-sawit-rendemen-alb-sistem-granding/"
+
+# ---------------------------------------------------------------------
+# RENDEMEN — basis perhitungan potensi minyak
+# ---------------------------------------------------------------------
+# Satuan `poin_oer` = persen CPO terhadap berat TBS.
+# Contoh: 21.0 berarti 21 kg CPO per 100 kg TBS.
+rendemen:
+
+  # Titik acuan potensi TEORETIS pada struktur neraca tiga baris:
+  # "andai seluruh muatan matang".
+  basis_matang:
+    nilai: 21.0
+    satuan: poin_oer
+    syarat: "TBS matang, ALB < 5%"
+    sumber: instiper_kematangan
+    status: terverifikasi
+    catatan: >
+      Dipakai sebagai baris pertama neraca. Bukan target operasional,
+      melainkan tolok ukur "seharusnya berapa".
+
+  rata_nasional:
+    rentang: [18.0, 20.0]
+    satuan: poin_oer
+    sumber: warta_ppks_rendemen
+    status: terverifikasi
+    catatan: "Konteks latar belakang, tidak dipakai dalam perhitungan."
+
+  tbs_petani_swadaya:
+    nilai: 18.88
+    satuan: poin_oer
+    sumber: warta_ppks_rendemen
+    status: terverifikasi
+    catatan: "Tenera matang dari petani swadaya."
+
+  potensi_bibit_modern:
+    rentang: [25.0, 27.0]
+    satuan: poin_oer
+    sumber: iop_ripening
+    status: terverifikasi
+    catatan: >
+      DI LUAR jangkauan sistem ini. Selisih menuju angka ini sebagian
+      besar soal bibit dan manajemen kebun, bukan sortasi maupun proses.
+      Jangan dipakai sebagai dasar klaim dampak.
+
+# ---------------------------------------------------------------------
+# PENALTI KEMATANGAN — inti Model 4
+# ---------------------------------------------------------------------
+kematangan:
+
+  # Koefisien kunci sistem. Ini yang menerjemahkan komposisi muatan
+  # menjadi kehilangan rendemen yang dapat dihitung.
+  penalti_buah_mentah:
+    nilai: -0.13
+    satuan: poin_oer
+    per: "1 persen proporsi buah mentah dalam muatan"
+    sumber: instiper_kematangan
+    status: terverifikasi
+    catatan: >
+      Contoh: muatan dengan 12% buah mentah kehilangan
+      12 x 0.13 = 1.56 poin OER dibanding muatan matang seluruhnya.
+
+  # Penalti tingkat lain BELUM ada koefisien terbit yang setara.
+  # Nilai di bawah adalah dugaan berbasis urutan kematangan, dipakai
+  # HANYA di simulator untuk membangkitkan variasi -- TIDAK dipakai
+  # untuk menghitung potensi yang dilaporkan ke petani.
+  penalti_kurang_masak:
+    nilai: -0.07
+    satuan: poin_oer
+    per: "1 persen proporsi kurang masak"
+    sumber: instiper_kematangan
+    status: perlu_verifikasi
+    catatan: >
+      Interpolasi antara buah mentah (-0.13) dan matang (0). Belum ada
+      angka terbit yang spesifik. Wajib dikalibrasi sebelum dipakai
+      sebagai dasar potongan pembayaran.
+
+  penalti_terlalu_masak:
+    nilai: -0.05
+    satuan: poin_oer
+    per: "1 persen proporsi terlalu masak"
+    sumber: instiper_kematangan
+    status: perlu_verifikasi
+    catatan: >
+      Buah terlalu masak menaikkan ALB, bukan menurunkan volume minyak
+      secara langsung. Mekanismenya berbeda dari buah mentah, jadi
+      penalti linear seperti ini kemungkinan tidak tepat.
+
+  # Standar penerimaan di gerbang PKS.
+  standar_penerimaan:
+    minimal_matang_persen: 90.0
+    minimal_brondolan_persen: 12.5
+    sumber: alat_ukur_grading
+    status: terverifikasi
+
+# ---------------------------------------------------------------------
+# OIL LOSS PER STASIUN — inti Model 5 dan simulator
+# ---------------------------------------------------------------------
+# Satuan `persen_terhadap_tbs` = kehilangan minyak sebagai persen dari
+# berat TBS yang diolah.
+oil_loss:
+
+  standar:
+    kondensat_sterilizer:
+      nilai: 1.0
+      sumber: six_sigma_oil_losses
+      status: terverifikasi
+    janjang_kosong:
+      nilai: 3.0
+      sumber: six_sigma_oil_losses
+      status: terverifikasi
+    ampas_kempa:
+      nilai: 5.0
+      sumber: six_sigma_oil_losses
+      status: terverifikasi
+    sludge_akhir:
+      nilai: 1.0
+      sumber: six_sigma_oil_losses
+      status: terverifikasi
+
+  # Nilai aktual terukur dari studi kasus pabrik. Dipakai untuk
+  # MENGALIBRASI simulator supaya angkanya mendarat di rentang nyata,
+  # bukan mengarang.
+  aktual_studi_kasus:
+    kondensat_sterilizer:
+      nilai: 1.83
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    janjang_kosong:
+      nilai: 2.44
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    ampas_kempa:
+      nilai: 4.17
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    nut_in_fiber:
+      nilai: 0.41
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    underflow_cst:
+      nilai: 7.04
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    sludge_separator:
+      nilai: 0.66
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    fat_pit:
+      nilai: 0.81
+      sumber: instiper_oil_losses
+      status: terverifikasi
+    deoiling_pond:
+      nilai: 0.65
+      sumber: instiper_oil_losses
+      status: terverifikasi
+
+  satuan: persen_terhadap_tbs
+
+# ---------------------------------------------------------------------
+# RESTAN — kehilangan akibat buah menunggu diolah
+# ---------------------------------------------------------------------
+# Ini kehilangan sisi PABRIK, bukan sisi pemasok. Penting untuk tesis
+# "menunjuk dua arah": tanpa faktor ini, seluruh kehilangan akan
+# tertumpuk ke petani.
+restan:
+  penalti_per_jam:
+    nilai: -0.055
+    satuan: poin_oer
+    per: "1 jam tunggu di atas 8 jam"
+    ambang_jam: 8.0
+    sumber: instiper_kematangan
+    status: perlu_verifikasi
+    catatan: >
+      Belum ada koefisien terbit yang spesifik untuk penurunan OER per jam
+      restan pada kondisi Indonesia. Nilai ini dugaan untuk simulator dan
+      WAJIB dikalibrasi. Mekanismenya kenaikan ALB, bukan penurunan volume
+      minyak secara langsung.
+
+# ---------------------------------------------------------------------
+# HARGA & SKALA INDUSTRI
+# ---------------------------------------------------------------------
+# Dipakai mengubah poin OER menjadi rupiah pada kartu neraca, dan untuk
+# perhitungan dampak di proposal. BUKAN bagian dari model.
+harga:
+  cpo_referensi_usd_per_ton:
+    nilai: 938.87
+    periode: "Maret 2026"
+    sumber: infosawit_harga
+    status: terverifikasi
+  kurs_idr_per_usd:
+    nilai: 16000
+    sumber: parameter_operasional
+    status: perlu_verifikasi
+    catatan: >
+      Setelan operasional, bukan koefisien ilmiah. Nilai bulat sebagai
+      bawaan. Wajib diganti kurs aktual sebelum angka rupiah di kartu
+      neraca dipakai untuk keputusan apa pun.
+
+industri:
+  produksi_cpo_2025_juta_ton:
+    nilai: 51.66
+    sumber: gapki_2026
+    status: terverifikasi
+  nilai_ekspor_2025_usd_miliar:
+    nilai: 30.6
+    sumber: gapki_2026
+    status: terverifikasi
+  luas_kebun_juta_ha:
+    nilai: 16.83
+    sumber: gapki_2026
+    status: terverifikasi
+  petani_swadaya_juta_keluarga:
+    nilai: 2.6
+    sumber: gapki_2026
+    status: terverifikasi
+
+# ---------------------------------------------------------------------
+# ANGKA YANG SENGAJA TIDAK DIPAKAI
+# ---------------------------------------------------------------------
+# Dicatat supaya jejaknya jelas, bukan dihapus diam-diam.
+tidak_dipakai:
+
+  rendemen_per_varietas:
+    tenera_matang: 14.31
+    tenera_mentah: 12.22
+    dura_mentah: 8.46
+    sumber: instiper_kematangan
+    status: perlu_verifikasi
+    alasan: >
+      Angka-angka ini TIDAK konsisten dengan `rendemen.basis_matang` (21.0)
+      dari sumber yang sama. Tenera matang 14.31 vs basis matang 21.0
+      berselisih terlalu jauh untuk dijelaskan variasi biasa — kemungkinan
+      besar basis pengukurannya berbeda (kandungan minyak per tandan di
+      laboratorium vs rendemen ekstraksi pabrik), tetapi hal itu belum
+      dapat dipastikan dari sumber yang tersedia.
+
+      Sampai basisnya jelas, angka ini tidak dipakai dalam perhitungan apa
+      pun. Menggabungkan dua angka dengan basis berbeda akan menghasilkan
+      potensi minyak yang salah — dan itu berarti potongan pembayaran
+      petani yang salah.
