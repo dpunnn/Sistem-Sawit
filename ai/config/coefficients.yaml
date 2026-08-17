@@ -72,6 +72,17 @@ sumber:
     penerbit: "InfoSAWIT"
     url: "https://www.infosawit.com/2026/02/28/harga-referensi-cpo-maret-2026-menguat-ke-us-93887-mt-bea-keluar-dipatok-us-124-per-mt/"
 
+  estimasi_neraca_massa:
+    judul: >
+      Taksiran nisbah massa aliran terhadap TBS — BUKAN kutipan terbit.
+      Angka rekayasa dari neraca massa pabrik kelapa sawit pada umumnya,
+      dipakai untuk mengubah kadar minyak per aliran menjadi poin
+      rendemen. Diterima sementara karena hasil jumlahannya mendarat di
+      norma industri (1,5-1,75 poin); harus diganti dengan nisbah
+      terukur dari satu pabrik nyata sebelum dipakai untuk keputusan
+      pembayaran.
+    penerbit: "internal"
+
   parameter_operasional:
     judul: "Parameter operasional pabrik — bukan nilai dari literatur"
     catatan: >
@@ -238,7 +249,62 @@ oil_loss:
       sumber: instiper_oil_losses
       status: terverifikasi
 
-  satuan: persen_terhadap_tbs
+  # SATUAN — sempat salah, dicatat supaya tidak terulang.
+  #
+  # Angka di atas adalah KADAR MINYAK DI DALAM ALIRAN ITU SENDIRI
+  # ("% terhadap contoh"), bukan persen terhadap TBS. Bedanya besar:
+  # kalau dibaca sebagai persen terhadap TBS, totalnya 18,01% dan
+  # rendemen akhir jatuh ke ~3% — mustahil. Jangan pernah menjumlahkan
+  # angka-angka ini secara langsung.
+  satuan: persen_terhadap_contoh
+
+  # Untuk menjadi poin rendemen, tiap kadar harus dikalikan nisbah massa
+  # aliran itu terhadap TBS:
+  #
+  #     kehilangan_poin_i = kadar_i x nisbah_massa_i
+  #
+  # Nisbah di bawah adalah TAKSIRAN TEKNIK dari neraca massa pabrik
+  # kelapa sawit pada umumnya, BUKAN kutipan terbit. Statusnya
+  # perlu_verifikasi, dan loader akan menolaknya di mode terverifikasi.
+  #
+  # Pemeriksaan silang yang membuat taksiran ini layak dipakai sementara:
+  # jumlah kadar x nisbah mendarat di 1,67 poin, sedangkan norma industri
+  # untuk total kehilangan minyak pabrik yang terkelola baik berada di
+  # kisaran 1,5-1,75 poin. Kalau nisbahnya salah besar, hasilnya tidak
+  # akan mendarat di sana.
+  nisbah_massa:
+    kondensat_sterilizer:
+      nilai: 0.13
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    janjang_kosong:
+      nilai: 0.23
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    ampas_kempa:
+      nilai: 0.14
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    nut_in_fiber:
+      nilai: 0.05
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    underflow_cst:
+      nilai: 0.03
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    sludge_separator:
+      nilai: 0.04
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    fat_pit:
+      nilai: 0.02
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
+    deoiling_pond:
+      nilai: 0.02
+      sumber: estimasi_neraca_massa
+      status: perlu_verifikasi
 
 # ---------------------------------------------------------------------
 # RESTAN — kehilangan akibat buah menunggu diolah
