@@ -118,10 +118,12 @@ flowchart TD
 
   subgraph L1[" 👁 LAPIS 1 — PERSEPSI · Apa yang masuk? "]
     direction TB
-    M1["<b>Model 1</b> · Deteksi ordinal per tandan<br/>CORAL loss, 7 kelas<br/><small>metrik: mAP + MAE indeks kelas</small>"]
+    M1["<b>Model 1</b> · Detektor tandan<br/>3 kelas struktural · YOLOv8s<br/><small>mAP@50 0,955 pada 14 tumpukan baru</small>"]
+    MO["<b>Head Kematangan</b><br/>4 tingkat, dinilai per crop<br/><small>akurasi 0,635 pada muatan campuran</small>"]
     M2["<b>Model 2</b> · Permukaan → seluruh muatan<br/>inferensi di bawah observasi parsial<br/><small>output: selang terkalibrasi</small>"]
     M4["<b>Model 4</b> · Potensi minyak<br/>regresi, koefisien terbit + koreksi<br/><small>output: kg ± selang</small>"]
-    M1 -->|"deteksi per tandan ±e1"| M2
+    M1 -->|"crop tiap tandan"| MO
+    MO -->|"komposisi terlihat ±e1"| M2
     M2 -->|"komposisi muatan ±e2"| M4
   end
 
@@ -214,19 +216,42 @@ secara aritmetika dan terbaca dalam satu layar.
 
 ### Lapis 1 — Persepsi (`ai/perception/`)
 
-**Model 1 — Deteksi & klasifikasi ordinal per tandan**
+**Model 1 — Detektor tandan (tiga kelas struktural)**
 
-Dari foto tumpukan TBS, tiap tandan dikotaki dan diberi kelas
-kematangan: `unripe → underripe → ripe → overripe → rotten`
-(plus `empty_bunch` dan `abnormal` di luar skala).
+Dari foto tumpukan TBS, tiap objek dikotaki dan digolongkan ke tiga kelas
+**struktural** — bukan tingkat kematangan:
 
-Kematangan bersifat **berurutan**, jadi sistem memakai *loss ordinal*
-(CORAL), bukan cross-entropy biasa. Alasannya bisnis, bukan estetika:
-cross-entropy menganggap semua kesalahan sama beratnya, padahal salah
-menebak "matang" jadi "lewat matang" jauh lebih murah daripada
-"mentah" jadi "busuk" — yang mengubah potongan pembayaran petani secara
-drastis. Karena itu metrik yang dilaporkan bukan hanya mAP, tapi juga
-**MAE indeks kelas**.
+| Kelas | Isi | Kotak |
+|---|---|---|
+| `tandan` | empat tingkat kematangan, dilebur | 11.102 |
+| `janjang_kosong` | tandan sisa setelah dirontokkan | 857 |
+| `abnormal` | tandan cacat | 2.599 |
+
+Peleburan empat tingkat kematangan menjadi satu kelas `tandan` disengaja.
+Dengan hanya 62 tumpukan di sisi latih, memusatkan sinyal pada satu konsep
+jauh lebih baik daripada memecahnya jadi empat konsep setengah matang —
+kelas `tandan` naik dari ~2.400 menjadi 7.838 kotak latih.
+
+Hasil pada 14 tumpukan yang belum pernah dilihat: **mAP@50 0,955 ·
+mAP@50-95 0,789**.
+
+**Head Ordinal — menilai kematangan pada crop**
+
+Tingkat kematangan ditangani model terpisah yang bekerja pada crop hasil
+deteksi. Kematangan bersifat **berurutan**, jadi loss-nya CORAL, bukan
+cross-entropy. Alasannya bisnis, bukan estetika: cross-entropy menganggap
+semua kesalahan sama beratnya, padahal salah menebak "matang" jadi "lewat
+matang" jauh lebih murah daripada "mentah" jadi "terlalu masak" — yang
+mengubah potongan pembayaran petani secara drastis.
+
+CORAL menjawab tiga pertanyaan biner berjenjang alih-alih memilih satu dari
+empat kelas. Bobot lapisan akhirnya **dibagi bersama**, hanya biasnya berbeda
+per ambang — sehingga model secara struktural tidak mungkin mengatakan "lebih
+dari masak" tanpa juga "lebih dari mentah". Urutan dijamin arsitektur, bukan
+harapan.
+
+Metrik utamanya **MAE indeks kelas**, bukan akurasi: klaimnya bukan "lebih
+sering benar", melainkan "kalau salah, salahnya lebih dekat".
 
 **Model 2 — Dari permukaan ke seluruh muatan**
 
@@ -724,18 +749,53 @@ bisa diaudit dari satu berkas.
 
 Repositori ini dalam pengembangan aktif. Status jujur per commit terakhir:
 
-| Komponen                             | Status            |
-| ------------------------------------ | ----------------- |
-| Struktur proyek & Docker Compose     | ✅ Selesai        |
-| Kerangka backend + koneksi database  | ✅ Selesai        |
-| Kerangka frontend + proxy API        | ✅ Selesai        |
-| Skema & data awal database           | 🔨 Dikerjakan     |
-| Model 1 — deteksi ordinal           | 🔨 Dikerjakan     |
-| Model 2 — komposisi seluruh muatan  | ⏳ Belum          |
-| Model 4 — potensi minyak            | ⏳ Belum          |
-| Simulator pabrik + Model 5 — neraca | ⏳ Belum          |
-| Model 6 — atribusi                  | ⏳ Belum          |
-| Bobot model terlatih                 | ⏳ Belum tersedia |
+| Komponen | Status |
+|---|---|
+| Struktur proyek & Docker Compose | ✅ Selesai |
+| Kerangka backend + koneksi database | ✅ Selesai |
+| Kerangka frontend + proxy API | ✅ Selesai |
+| Analisis dataset & pembangunan split sah | ✅ Selesai |
+| Model 1 — detektor tandan (3 kelas struktural) | ✅ mAP@50 **0,955** |
+| Head kematangan — penilaian per crop | ⚠️ akurasi **0,635** pada muatan campuran |
+| Model 2 — komposisi seluruh muatan | ⏳ Belum |
+| Model 4 — potensi minyak | ⏳ Belum |
+| Simulator pabrik + Model 5 — neraca | ⏳ Belum |
+| Model 6 — atribusi | ⏳ Belum |
+| Skema & data awal database | ⏳ Belum |
+| Integrasi model ke backend | ⏳ Belum |
+
+### Temuan metodologis
+
+**1. Split resmi dataset publik terbukti bocor sepenuhnya.** Seluruh 91 tumpukan
+muncul di sisi latih, dan 88,7% gambar uji punya frame bersebelahan langsung di
+sisi latih. Split pengganti berbasis tumpukan dibangun dan diverifikasi nol
+kebocoran. Besaran inflasinya terukur:
+
+| Metrik | Split jujur | Split resmi (bocor) | Inflasi |
+|---|---|---|---|
+| mAP@50-95 | 0,7892 | 0,8712 | **+10,4%** |
+| Presisi | 0,8309 | 0,9942 | **+19,6%** |
+
+**2. Komponen kematangan awalnya mengenali tumpukan, bukan membedakan tandan.**
+Karena 66 dari 91 tumpukan hanya berisi satu tingkat kematangan, model dapat
+lulus dengan mengenali adegan. Akurasinya jatuh dari 0,8365 pada tumpukan murni
+ke 0,5160 pada tumpukan campuran — kondisi yang sebenarnya mewakili muatan truk.
+
+Diperbaiki lewat rancangan faktorial 2×2:
+
+| Metrik | Awal | **Setelah perbaikan** |
+|---|---|---|
+| Akurasi muatan campuran | 0,5160 | **0,6346** |
+| Kesalahan ≥2 tingkat | 9,17% | **1,50%** |
+| Selisih murni−campuran | 0,1178 | **0,0649** |
+
+Dua intervensi yang diuji **gagal dan dilaporkan gagal**: memotong tepi crop
+sendirian justru merugikan, dan augmentasi agresif menghancurkan sinyal.
+Struktur ordinal CORAL juga kalah dari cross-entropy, dan hipotesis
+penyebabnya diuji lewat varian berkapasitas 256× lalu terbantah.
+
+Rincian lengkap beserta notebook yang dapat dijalankan ulang ada di
+[`docs/experiments.md`](docs/experiments.md).
 
 ---
 
