@@ -7,7 +7,7 @@ from enum import Enum
 from pydantic import BaseModel, Field, computed_field
 
 
-
+#Tipe Atribut Model
 
 class Estimate(BaseModel):
     
@@ -48,7 +48,7 @@ class Side(str, Enum):
     UNKNOWN = "unknown"
 
 
-
+# Model Persepsi
 
 class Detection(BaseModel):
     """Satu tandan hasil Model 1."""
@@ -80,7 +80,7 @@ class GradingResult(BaseModel):
     processed_at: datetime
 
 
-
+# Model Penalaran
 
 class LossAttribution(BaseModel):
     """Satu baris atribusi kehilangan (Model 6)."""
