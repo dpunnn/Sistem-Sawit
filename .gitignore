@@ -8,6 +8,8 @@ __pycache__/
 node_modules/
 .next/
 next-env.d.ts
+# Cache inkremental tsc -- dibangun ulang tiap `npm run typecheck`.
+*.tsbuildinfo
 
 # Model & data besar
 # Yang DI-COMMIT hanya bobot yang dibutuhkan untuk menjalankan sistem:

@@ -1,5 +1,5 @@
 // Tipe ini WAJIB cerminan dari backend/app/schemas/models.py.
-// Kalau salah satu berubah, ubah keduanya.
+// Kalau salah satu berubah, ubah keduanya dalam commit yang sama.
 
 /** Taksiran dengan selang. Jangan pernah pakai number polos untuk
  *  nilai hasil model -- seluruh sistem berjanji jujur soal
@@ -18,12 +18,12 @@ export type RipenessClass =
   | 'empty_bunch'
   | 'abnormal'
 
-/** Satu tandan hasil Model 1. */
+/** Satu tandan hasil Model 1. bbox = [x1, y1, x2, y2] ternormalisasi 0..1. */
 export type Detection = {
-  bbox: [number, number, number, number] // x1, y1, x2, y2
+  bbox: [number, number, number, number]
   ripeness: RipenessClass
   confidence: number
-  low_confidence: boolean // default false
+  low_confidence?: boolean
 }
 
 export type CompositionItem = {
@@ -33,44 +33,40 @@ export type CompositionItem = {
 
 /** Keluaran gabungan Model 1 + 2 + 4 untuk satu muatan truk. */
 export type GradingResult = {
-  batch_id: number | null
+  batch_id?: number | null
   detections: Detection[]
-  overlay_url: string | null
+  overlay_url?: string | null
   composition: CompositionItem[]
   potential_oil_kg: Estimate
-  low_confidence_count: number // default 0
+  low_confidence_count: number
   model_version: string
-  processed_at: string // ISO datetime
+  processed_at: string
 }
 
-/** Satu baris atribusi kehilangan (Model 6). */
+/** Satu baris atribusi kehilangan (Model 6), dalam poin OER. */
 export type LossAttribution = {
   cause: string
   side: Side
   points: Estimate
   confidence: Confidence
-  detail: string | null
+  detail?: string | null
 }
 
 export type BalanceCard = {
-  shift_date: string // ISO date (YYYY-MM-DD)
+  shift_date: string
+
+  /** Potensi teoretis dari muatan yang masuk (%). */
   potential_theoretical: number
   supplier_losses: LossAttribution[]
+
+  /** Potensi setelah kehilangan sisi pemasok dipotong (%). */
   potential_realistic: number
   mill_losses: LossAttribution[]
   unexplained: LossAttribution
+
   actual_oer: number
   loss_value_idr: number
-}
 
-// --- Helpers for computed_field equivalents (Pydantic computes these; TS types are static) ---
-
-/** Mirrors Estimate.width (hi - lo). */
-export function estimateWidth(e: Estimate): number {
-  return e.hi - e.lo
-}
-
-/** Mirrors BalanceCard.total_loss_points (rounded to 3 decimals). */
-export function totalLossPoints(card: Pick<BalanceCard, 'potential_theoretical' | 'actual_oer'>): number {
-  return Math.round((card.potential_theoretical - card.actual_oer) * 1000) / 1000
+  /** computed_field di backend: potential_theoretical - actual_oer. */
+  total_loss_points: number
 }

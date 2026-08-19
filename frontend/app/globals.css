@@ -1,3 +1,87 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Tema dikunci terang: hanya coklat & putih. Tanpa varian gelap,
+   supaya satu palet saja yang perlu diaudit. */
+:root {
+  color-scheme: light;
+}
+
+@layer base {
+  body {
+    @apply bg-plane text-ink font-sans antialiased;
+  }
+
+  /* Angka di dalam kolom wajib rata vertikal. Angka pahlawan TIDAK --
+     tabular-nums membuat angka besar terlihat renggang. */
+  th,
+  td,
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Arsiran 45derajat -- kanal cadangan saat hue tidak bisa diandalkan
+     (buta warna berat, cetak hitam-putih, forced-colors).
+     Dipakai HANYA pada baris "tidak terjelaskan", bukan dekorasi. */
+  .hatch-unknown {
+    background-image: repeating-linear-gradient(
+      45deg,
+      #b8b0a2 0 2px,
+      transparent 2px 7px
+    );
+  }
+
+  /* Penanda titik pindai muatan -- meniru penanda pusat gempa:
+     satu lingkaran solid diam di tengah, lalu lingkaran solid baru
+     terlempar keluar 5 kali per detik (satu tiap 200 ms). Ritmenya
+     datang dari 5 gelombang berumur 1 s yang digeser 200 ms. */
+  .quake {
+    @apply pointer-events-none absolute grid place-items-center;
+  }
+
+  .quake-core,
+  .quake-wave {
+    @apply absolute rounded-full bg-mill;
+  }
+
+  .quake-core {
+    height: 14px;
+    width: 14px;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92);
+  }
+
+  .quake-wave {
+    height: 104px;
+    width: 104px;
+    animation: quake-wave 1s linear infinite;
+  }
+}
+
+@keyframes quake-wave {
+  0% {
+    transform: scale(0.135);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Gerak berulang bisa memicu mual/migrain: sisakan lingkaran solidnya
+   saja, tanpa gelombang. */
+@media (prefers-reduced-motion: reduce) {
+  .quake-wave {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .hatch-unknown {
+    forced-color-adjust: none;
+  }
+}
