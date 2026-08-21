@@ -512,6 +512,8 @@ akan terlihat.
 ```bash
 # Backend
 cd backend
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 export DATABASE_URL=postgresql://neraca:neraca@localhost:5432/neraca
 uvicorn app.main:app --reload
