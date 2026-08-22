@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -92,6 +93,34 @@ class LossAttribution(BaseModel):
     detail: str | None = None 
 
 
+class StationLoss(BaseModel):
+    """Kehilangan minyak terukur di satu stasiun pabrik.
+
+    PERINGATAN SATUAN. `oil_content_pct` adalah kadar minyak DI DALAM
+    aliran itu (persen terhadap contoh), bukan persen terhadap TBS.
+    Menjumlahkan kolom itu memberi ~18% dan rendemen mustahil ~3%.
+    Yang boleh dijumlahkan hanya `points`, yaitu kadar x nisbah massa.
+    """
+
+    station: str
+    oil_content_pct: float
+    mass_ratio: float
+    points: float
+    standard_pct: float | None = None
+
+
+class GraderDecision(BaseModel):
+    """Keputusan grader atas satu hasil grading.
+
+    Tiap koreksi adalah data latih untuk kalibrasi ulang -- itu yang
+    dijanjikan layar gerbang, jadi jalurnya harus benar-benar ada.
+    """
+
+    decision: Literal["agree", "correct"]
+    note: str | None = None
+    corrected_composition: list[CompositionItem] | None = None
+
+
 class BalanceCard(BaseModel):
 
     shift_date: date
@@ -106,6 +135,10 @@ class BalanceCard(BaseModel):
     actual_oer: float
 
     loss_value_idr: float
+
+    # Rincian kehilangan sisi pabrik per stasiun. Bagian neraca yang
+    # bisa diaudit tanpa membongkar model sama sekali.
+    station_losses: list[StationLoss] = Field(default_factory=list)
 
     @computed_field  # type: ignore[misc]
     @property

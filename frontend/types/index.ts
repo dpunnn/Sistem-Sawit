@@ -52,6 +52,20 @@ export type LossAttribution = {
   detail?: string | null
 }
 
+/** Kehilangan minyak terukur di satu stasiun pabrik.
+ *
+ *  `oil_content_pct` adalah KADAR MINYAK DI DALAM ALIRAN ITU (persen
+ *  terhadap contoh), bukan persen terhadap TBS. Keduanya sempat
+ *  tertukar di sisi AI dan menghasilkan rendemen mustahil ~3%.
+ *  Yang boleh dijumlahkan hanya `points`. */
+export type StationLoss = {
+  station: string
+  oil_content_pct: number
+  mass_ratio: number
+  points: number
+  standard_pct?: number | null
+}
+
 export type BalanceCard = {
   shift_date: string
 
@@ -67,6 +81,18 @@ export type BalanceCard = {
   actual_oer: number
   loss_value_idr: number
 
+  /** Rincian kehilangan sisi pabrik per stasiun. Bagian neraca yang
+   *  bisa diaudit tanpa membongkar model sama sekali. */
+  station_losses: StationLoss[]
+
   /** computed_field di backend: potential_theoretical - actual_oer. */
   total_loss_points: number
+}
+
+/** Keputusan grader atas satu hasil grading. Tiap koreksi adalah
+ *  data latih untuk kalibrasi ulang. */
+export type GraderDecision = {
+  decision: 'agree' | 'correct'
+  note?: string
+  corrected_composition?: CompositionItem[]
 }
