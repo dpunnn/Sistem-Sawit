@@ -71,6 +71,28 @@ export type BatchRow = {
   unripe_pct: number | null
 }
 
+/** Satu penyebab kehilangan (Model 6), lengkap dengan pemilik masalahnya. */
+export type LossCause = LossAttribution & {
+  owner?: string | null
+  action?: string | null
+  basis?: string | null
+  streams: { name: string; points: number }[]
+  counted_in_balance?: boolean | null
+  may_deduct_payment: boolean
+  action_threshold: string
+}
+
+export type AttributionResponse = {
+  shift_date: string
+  total_loss_points: number
+  causes: LossCause[]
+  share: Record<string, number>
+  uncertainty_widens: boolean
+  closure_error: number
+  coefficient_mode: string
+  notes: string[]
+}
+
 export type SupplierRank = {
   name: string
   kind: string

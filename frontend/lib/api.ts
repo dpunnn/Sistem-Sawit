@@ -2,6 +2,7 @@
 // ditangani rewrites di next.config.js -- jangan pernah hardcode
 // http://backend:8000 di sini, itu tidak dikenal browser.
 import type {
+  AttributionResponse,
   BalanceCard,
   BatchRow,
   CorrectionStats,
@@ -89,6 +90,14 @@ export function fetchBalance(shift?: string): Promise<Loaded<BalanceCard | null>
   const q = shift ? `?shift_date=${encodeURIComponent(shift)}` : ''
   const path = `/balance${q}`
   return ambil(path, () => getJSON<BalanceCard>(path))
+}
+
+/** Atribusi kehilangan per penyebab (Model 6). Ini keluaran paling
+ *  novel sistem, dan sempat tidak pernah dipanggil layar sama sekali. */
+export function fetchAttribution(shift?: string): Promise<Loaded<AttributionResponse | null>> {
+  const q = shift ? `?shift_date=${encodeURIComponent(shift)}` : ''
+  const path = `/attribution${q}`
+  return ambil(path, () => getJSON<AttributionResponse>(path))
 }
 
 /** Daftar muatan truk pada shift. Dipakai layar gerbang untuk menautkan

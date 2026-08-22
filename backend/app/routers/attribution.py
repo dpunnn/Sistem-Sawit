@@ -21,6 +21,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.core.db import get_conn
 from app.schemas.models import AttributionResponse
 from app.services import reasoning
+from app.services.attribution import susun_penyebab
 
 router = APIRouter(prefix="/api", tags=["atribusi"])
 
@@ -80,13 +81,19 @@ def atribusi(
                         "saran": "Butuh shift_output, batch, dan grading_result."})
 
     obj = kartu["_kartu"]
-    penyebab = []
-    for b in obj.semua_baris:
-        d = reasoning.selang_baris(b)
-        d["may_deduct_payment"] = b.boleh_untuk_potongan
-        d["action_threshold"] = AMBANG[d["confidence"]]
-        penyebab.append(d)
-    penyebab.sort(key=lambda x: -x["points"]["value"])
+
+    # Restan rata-rata berbobot berat, dari catatan jembatan timbang.
+    with get_conn() as conn:
+        r = conn.execute(
+            "SELECT sum(b.queue_hours * b.gross_weight_kg) / "
+            "       NULLIF(sum(b.gross_weight_kg), 0) AS restan "
+            "FROM batch b WHERE b.shift_date = %s", (target,)).fetchone()
+        restan = float(r["restan"] or 0)
+        from app.routers.suppliers import daftar_pemasok
+        pemasok = daftar_pemasok(target)
+
+    penyebab = susun_penyebab(kartu, obj, pemasok,
+                              restan_jam=restan, mode=mode)
 
     pangsa = obj.bagi_tanggung_jawab()
     return AttributionResponse(

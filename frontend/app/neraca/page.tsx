@@ -9,13 +9,20 @@ export const revalidate = 0
 
 // "2,2 poin hilang. Ini rinciannya. Ini yang bisa diperbaiki."
 
-import { fetchBalance, fetchBatch, fetchCorrections, fetchSuppliers } from '@/lib/api'
+import {
+  fetchAttribution,
+  fetchBalance,
+  fetchBatch,
+  fetchCorrections,
+  fetchSuppliers,
+} from '@/lib/api'
 import { SIDE_FILL, fmtIDR, fmtPoint } from '@/lib/format'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Hero, Legend, SourceBadge, StatTile } from '@/components/ui/Bits'
 import { ActionThresholds } from '@/components/ui/ActionThresholds'
 import { Waterfall } from '@/components/neraca/Waterfall'
 import { AttributionTable, BalanceRows } from '@/components/neraca/BalanceRows'
+import { CausesTable } from '@/components/neraca/Causes'
 import { StationLosses } from '@/components/neraca/StationLosses'
 import { UncertaintyChain } from '@/components/neraca/UncertaintyChain'
 import { CorrectionCurve, SupplierRanking } from '@/components/neraca/Suppliers'
@@ -58,6 +65,12 @@ export default async function NeracaPage() {
   // tidak rapi; ia klaim yang tidak dimiliki sistem.
   const { data: pemasok, source: pemasokSource } = await fetchSuppliers()
   const { data: koreksi } = await fetchCorrections()
+
+  // Model 6 — bagian yang nyawit.txt sebut PALING NOVEL, dan yang
+  // sempat tidak pernah dipanggil layar sama sekali. Tanpa ini halaman
+  // hanya menampilkan nama alat laboratorium, bukan keputusan yang bisa
+  // diperbaiki besok pagi.
+  const { data: atribusi } = await fetchAttribution()
   const chainSource = source === 'live' && gradingSource === 'live' ? 'live' : 'demo'
 
   const supplierPoints = balance.supplier_losses.reduce((a, l) => a + l.points.value, 0)
@@ -182,6 +195,28 @@ export default async function NeracaPage() {
           </details>
         </CardBody>
       </Card>
+
+      {/* ---- TERURAI MENJADI (Model 6) ---- */}
+      {atribusi && (
+        <Card className="mt-5">
+          <CardHeader
+            title="Terurai menjadi"
+            subtitle="Bukan nama alat, melainkan siapa atau keputusan apa yang bisa mengubahnya besok pagi. Pengelompokannya mengikuti pola yang ditemukan sendiri Model 6 dari riwayat giling."
+          />
+          <CardBody>
+            <CausesTable causes={atribusi.causes} />
+            {atribusi.notes.length > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                {atribusi.notes.map((n) => (
+                  <p key={n} className="text-[12px] leading-relaxed text-ink-soft">
+                    ! {n}
+                  </p>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       {/* ---- Kartu tiga baris ---- */}
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_1fr]">

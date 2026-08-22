@@ -229,6 +229,23 @@ class HealthResponse(BaseModel):
 class LossCause(LossAttribution):
     """Penyebab kehilangan, lengkap dengan boleh-tidaknya jadi potongan."""
 
+    owner: str | None = Field(
+        None,
+        description=(
+            "Pihak atau KEPUTUSAN yang bisa mengubahnya. Ini yang membedakan "
+            "atribusi dari pengukuran: 'cst underflow 0,21' tidak memberi tahu "
+            "apa yang harus diubah besok pagi, 'suhu & waktu pengendapan' iya."
+        ))
+    action: str | None = Field(None, description="Tindakan konkret yang disarankan")
+    basis: str | None = Field(None, description="Aritmetika atau dasar angkanya")
+    streams: list[dict] = Field(
+        default_factory=list,
+        description="Aliran laboratorium yang dijumlahkan jadi penyebab ini")
+    counted_in_balance: bool | None = Field(
+        None,
+        description=(
+            "False berarti penyebab ini DITAMPILKAN tetapi tidak dibebankan "
+            "di neraca, karena koefisiennya belum tertelusur."))
     may_deduct_payment: bool = Field(
         ...,
         description=(

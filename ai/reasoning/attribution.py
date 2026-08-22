@@ -46,6 +46,53 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ai.simulator.mill import ALIRAN
 
+# Pengelompokan aliran laboratorium menjadi PENYEBAB YANG BISA
+# DITINDAKLANJUTI.
+#
+# Ini bukan pengelompokan yang dikarang manusia: bentuknya persis pola
+# yang ditemukan sendiri Model 6 dari riwayat giling, dengan kosinus
+# 0,93-0,9995 terhadap tanda tangan gangguan yang ditanam (lihat
+# docs/experiments.md bagian 9).
+#
+# Alasan pengelompokan ini ADA sama sekali: "cst underflow 0,21 poin"
+# tidak memberi tahu manajer apa yang harus diubah besok pagi.
+# "Klarifikasi -> suhu & waktu pengendapan" memberi tahu. Nilai sistem
+# ini bukan mengukur kehilangan — pabrik sudah mengukurnya tiap hari —
+# melainkan mengubah ukuran jadi tindakan.
+KELOMPOK_PENYEBAB: dict[str, dict] = {
+    "perebusan": {
+        "label": "Perebusan",
+        "aliran": ["kondensat_sterilizer", "janjang_kosong"],
+        "pemilik": "Setelan sterilisasi",
+        "pihak": "pabrik",
+        "tindakan": "Periksa tekanan dan lama perebusan terhadap komposisi muatan.",
+        "dasar": "Pola 'naik janjang+ampas', kosinus 0,998 terhadap perebusan kurang matang.",
+    },
+    "kempa": {
+        "label": "Stasiun kempa",
+        "aliran": ["ampas_kempa", "nut_in_fiber"],
+        "pemilik": "Tekanan & keausan ulir kempa",
+        "pihak": "pabrik",
+        "tindakan": "Periksa keausan ulir dan tekanan kerja kempa.",
+        "dasar": "Pola 'naik nut+ampas', kosinus 0,999 terhadap kempa aus.",
+    },
+    "klarifikasi": {
+        "label": "Stasiun klarifikasi",
+        "aliran": ["underflow_cst", "sludge_separator", "fat_pit", "deoiling_pond"],
+        "pemilik": "Suhu & waktu pengendapan",
+        "pihak": "pabrik",
+        "tindakan": "Periksa suhu CST dan waktu tinggal sebelum separasi.",
+        "dasar": "Pola 'naik sludge+underflow', kosinus 0,931 terhadap CST dingin.",
+    },
+}
+
+# Aliran -> kelompoknya. Dibuat sekali supaya tidak ada aliran yang
+# diam-diam tidak masuk kelompok mana pun lalu hilang dari layar.
+ALIRAN_KE_KELOMPOK = {
+    a: k for k, v in KELOMPOK_PENYEBAB.items() for a in v["aliran"]
+}
+
+
 # Ambang keyakinan. Angka-angka ini adalah pilihan kebijakan, bukan
 # temuan — dan diletakkan di satu tempat supaya bisa diperdebatkan.
 AMBANG_TINGGI = 0.75
