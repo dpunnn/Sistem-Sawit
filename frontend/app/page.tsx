@@ -4,13 +4,12 @@
 // Alur yang ditiru: truk berhenti -> kamera memindai -> Model 1-4
 // berjalan -> grader menyetujui atau mengoreksi.
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import type { GradingResult } from '@/types'
-import { gradeImage, submitDecision } from '@/lib/api'
+import type { BatchRow, GradingResult } from '@/types'
+import { fetchBatch, fetchBatches, gradeImage, submitDecision } from '@/lib/api'
 import type { DataSource } from '@/lib/api'
-import { demoGrading, demoGradingUnripe } from '@/lib/demo'
-import { fmtInt, margin } from '@/lib/format'
+import { fmtInt, fmtPct, margin } from '@/lib/format'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Hero, SourceBadge, StatTile, Warn } from '@/components/ui/Bits'
@@ -23,19 +22,14 @@ import { Dropzone, bukaDialogBerkas } from '@/components/grading/Dropzone'
 
 type Status = 'idle' | 'scanning' | 'done'
 
-/** Dua muatan contoh dari skenario demo. Ada supaya perbedaan yang
- *  paling penting bisa ditunjukkan dalam satu klik, tanpa bergantung
- *  pada berkas foto yang belum tentu ada di mesin penguji.
+/* Muatan contoh yang dulu ditulis tangan di lib/demo SUDAH DIHAPUS.
  *
- *  Yang harus terlihat saat berpindah: potensi minyak turun, DAN
- *  selangnya melebar. Angka yang turun itu dugaan siapa pun; selang
- *  yang ikut melebar adalah bagian yang membedakan sistem ini. */
-const SCENARIOS = {
-  bagus: { label: 'Muatan bagus', data: demoGrading },
-  mentah: { label: 'Muatan mentah', data: demoGradingUnripe },
-} as const
-
-type ScenarioKey = keyof typeof SCENARIOS
+ * Penggantinya: dua hasil grading yang benar-benar tersimpan di basis
+ * data, dipilih otomatis dari daftar muatan — satu dengan buah mentah
+ * paling sedikit, satu dengan paling banyak. Perbedaan yang ingin
+ * ditunjukkan (potensi turun, selang melebar) sama saja, bedanya
+ * angkanya nyata dan bisa ditelusuri ke sertifikatnya.
+ */
 
 export default function GatePage() {
   // Sengaja KOSONG saat pertama dibuka.
@@ -55,8 +49,31 @@ export default function GatePage() {
   const [onlyLow, setOnlyLow] = useState(false)
   const [decision, setDecision] = useState<'agree' | 'correct' | null>(null)
   const [kirim, setKirim] = useState<string | null>(null)
-  const [scenario, setScenario] = useState<ScenarioKey | null>(null)
+  const [muatan, setMuatan] = useState<BatchRow[]>([])
+  const [dipilih, setDipilih] = useState<number | null>(null)
   const rootRef = useRef<HTMLElement>(null)
+
+  // Daftar muatan yang sedang mengantre di gerbang. Tanpa ini, unggahan
+  // tidak punya batch_id: model tetap berjalan tetapi hasilnya hilang
+  // begitu layar ditutup, dan tautan sertifikatnya menunjuk ketiadaan.
+  useEffect(() => {
+    fetchBatches().then(({ data }) => {
+      if (!data?.length) return
+      setMuatan(data)
+      setDipilih(data.find((m) => m.grading_id === null)?.id ?? data[0].id)
+    })
+  }, [])
+
+  const muatanDipilih = muatan.find((m) => m.id === dipilih) ?? null
+
+  // Dua muatan pembanding: paling sedikit dan paling banyak buah mentah,
+  // dipilih dari data yang ada — bukan dari daftar yang ditulis tangan.
+  const dinilai = muatan
+    .filter((m) => m.grading_id !== null && m.unripe_pct !== null)
+    .sort((a, b) => (a.unripe_pct ?? 0) - (b.unripe_pct ?? 0))
+  const contohTersimpan = dinilai.length >= 2
+    ? [dinilai[0], dinilai[dinilai.length - 1]]
+    : dinilai
 
   const memindai = status === 'scanning'
 
@@ -72,26 +89,30 @@ export default function GatePage() {
     setStatus('scanning')
     setDecision(null)
     setKirim(null)
-    setScenario(null)
-    const { data, source, error } = await gradeImage(file)
+    const { data, source, error } = await gradeImage(file, {
+      gross_weight_kg: muatanDipilih?.gross_weight_kg,
+      batch_id: muatanDipilih?.id,
+    })
     setResult(data)
     setSource(source)
     setGagal(error ?? null)
     setStatus('done')
   }
 
-  function pickScenario(key: ScenarioKey) {
+  /** Muat satu hasil grading yang SUDAH TERSIMPAN, bukan data karangan. */
+  async function muatTersimpan(gradingId: number) {
     if (memindai) return
     setImageUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev)
       return null
     })
-    setResult(SCENARIOS[key].data)
-    setSource('demo')
-    setGagal(null)
-    setScenario(key)
+    setStatus('scanning')
     setDecision(null)
     setKirim(null)
+    const { data, source, error } = await fetchBatch(gradingId)
+    setResult(data)
+    setSource(source)
+    setGagal(error ?? null)
     setStatus('done')
   }
 
@@ -199,28 +220,61 @@ export default function GatePage() {
               maksimum 12 MB.
             </p>
 
-            <div className="mt-4 border-t border-line pt-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[12px] text-ink-soft">Muatan contoh:</span>
-                {(Object.keys(SCENARIOS) as ScenarioKey[]).map((key) => (
-                  <Button
-                    key={key}
-                    variant={scenario === key ? 'primary' : 'secondary'}
-                    className="min-h-[32px] px-3 text-[13px]"
-                    aria-pressed={scenario === key}
-                    disabled={memindai}
-                    onClick={() => pickScenario(key)}
-                  >
-                    {SCENARIOS[key].label}
-                  </Button>
-                ))}
+            {/* Muatan yang sedang mengantre, dari basis data. Foto yang
+             *  diunggah akan dikaitkan ke muatan terpilih, sehingga
+             *  hasilnya tersimpan dan punya sertifikat sungguhan. */}
+            {muatan.length > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                <label
+                  htmlFor="pilih-muatan"
+                  className="block text-[12px] text-ink-soft"
+                >
+                  Muatan yang sedang ditimbang
+                </label>
+                <select
+                  id="pilih-muatan"
+                  value={dipilih ?? ''}
+                  disabled={memindai}
+                  onChange={(e) => setDipilih(Number(e.target.value))}
+                  className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink"
+                >
+                  {muatan.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      #{m.id} · {m.truck_plate} · {m.supplier} ·{' '}
+                      {fmtInt(m.gross_weight_kg)} kg
+                      {m.grading_id ? ' · sudah dinilai' : ''}
+                    </option>
+                  ))}
+                </select>
+                {muatanDipilih && (
+                  <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
+                    Berat bruto {fmtInt(muatanDipilih.gross_weight_kg)} kg dan restan{' '}
+                    {muatanDipilih.queue_hours.toFixed(1).replace('.', ',')} jam diambil
+                    dari catatan jembatan timbang — bukan diketik di layar ini.
+                  </p>
+                )}
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-[12px] text-ink-soft">Lihat hasil tersimpan:</span>
+                  {contohTersimpan.map((m) => (
+                    <Button
+                      key={m.id}
+                      variant="secondary"
+                      className="min-h-[32px] px-3 text-[13px]"
+                      disabled={memindai}
+                      onClick={() => muatTersimpan(m.grading_id!)}
+                    >
+                      #{m.id} · {fmtPct(m.unripe_pct ?? 0)} mentah
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
+                  Bandingkan keduanya: makin banyak buah mentah, potensi minyak turun
+                  dan selangnya ikut melebar. Keduanya hasil grading yang benar-benar
+                  tersimpan, bukan angka contoh.
+                </p>
               </div>
-              <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
-                Bandingkan keduanya: potensi minyak turun, dan selangnya ikut melebar.
-                Muatan yang komposisinya timpang memang lebih sulit ditaksir dari
-                lapisan permukaan — sistem mengakuinya, bukan menutupinya.
-              </p>
-            </div>
+            )}
 
             {result && (
               <div className="mt-4 border-t border-line pt-3">
@@ -325,14 +379,19 @@ export default function GatePage() {
                 <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{kirim}</p>
               )}
 
-              {result && (
+              {result?.batch_id ? (
                 <Link
-                  href={`/batch/${result.batch_id ?? 4821}`}
+                  href={`/batch/${result.batch_id}`}
                   className="mt-4 inline-block text-[13px] font-medium text-mill underline underline-offset-4"
                 >
                   Lihat sertifikat sortasi muatan ini →
                 </Link>
-              )}
+              ) : result ? (
+                <p className="mt-4 text-[12px] leading-relaxed text-ink-soft">
+                  Hasil ini belum tersimpan, jadi belum punya sertifikat. Pilih
+                  muatan yang sedang ditimbang lebih dulu, lalu unggah ulang.
+                </p>
+              ) : null}
             </CardBody>
           </Card>
         </div>

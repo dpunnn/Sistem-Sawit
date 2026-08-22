@@ -30,6 +30,37 @@ export default async function BatchDetailPage({
   const { id } = await params
   const { data: batch, source, error } = await fetchBatch(id)
 
+  // Sertifikat yang tidak ada TIDAK BOLEH dikarang.
+  //
+  // Sebelumnya id yang tidak dikenal jatuh ke data contoh, dan yang
+  // muncul adalah sertifikat lengkap berisi "4.280 kg" dengan nama
+  // pemasok yang sama untuk muatan apa pun. Sertifikat adalah dokumen
+  // yang dipakai dalam sengketa harga; mengarangnya jauh lebih buruk
+  // daripada mengaku tidak punya.
+  if (!batch) {
+    return (
+      <main className="mx-auto max-w-3xl px-5 py-16">
+        <h1 className="text-[26px] font-semibold tracking-tight text-ink">
+          Sertifikat Sortasi
+        </h1>
+        <p className="mt-1 text-[14px] text-ink-soft">Muatan #{id}</p>
+        <div className="mt-6">
+          <ErrorState message={error ?? `Muatan #${id} tidak ditemukan.`} />
+        </div>
+        <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">
+          Tidak ada angka yang ditampilkan untuk muatan yang tidak tercatat.
+          Lihat daftar muatan yang ada lewat <code>/api/batches</code>.
+        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-block text-[13px] font-medium text-mill underline underline-offset-4"
+        >
+          ← Kembali ke gerbang
+        </Link>
+      </main>
+    )
+  }
+
   const oil = batch.potential_oil_kg
   const unripe = batch.composition.find((c) => c.ripeness === 'unripe')
   const scanned = new Date(batch.processed_at).toLocaleString('id-ID', {

@@ -4,10 +4,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
+// Sertifikat sortasi menunjuk hasil grading PERTAMA yang tersimpan.
+//
+// Sebelumnya id-nya 4821 — angka karangan yang tidak pernah ada di
+// basis data. Mengkliknya menampilkan sertifikat lengkap berisi
+// "4.280 kg" karena request gagal lalu jatuh ke data contoh. Sertifikat
+// dipakai dalam sengketa harga; mengarangnya jauh lebih buruk daripada
+// mengaku tidak punya.
+//
+// Id 1 dipilih karena seed selalu membuatnya. Kalau ternyata tidak ada,
+// halamannya sekarang mengatakan "tidak ditemukan", bukan mengarang.
 const LINKS = [
   { href: '/', label: 'Gerbang', hint: 'Apa yang masuk?' },
   { href: '/neraca', label: 'Neraca Minyak', hint: 'Ke mana perginya?' },
-  { href: '/batch/4821', label: 'Sertifikat Sortasi', hint: 'Bukti untuk petani' },
+  { href: '/batch/1', label: 'Sertifikat Sortasi', hint: 'Bukti untuk petani' },
 ]
 
 export function Nav() {

@@ -11,16 +11,38 @@ import { AttributionTable, BalanceRows } from '@/components/neraca/BalanceRows'
 import { StationLosses } from '@/components/neraca/StationLosses'
 import { UncertaintyChain } from '@/components/neraca/UncertaintyChain'
 import { CorrectionCurve, SupplierRanking } from '@/components/neraca/Suppliers'
-import { ErrorState } from '@/components/ui/States'
+import { EmptyState, ErrorState } from '@/components/ui/States'
 
 export default async function NeracaPage() {
   const { data: balance, source, error } = await fetchBalance()
+
+  // Tanpa neraca tidak ada yang bisa ditampilkan. Halaman ini BERHENTI
+  // di sini alih-alih menggambar kartu berisi angka contoh — kartu
+  // neraca palsu jauh lebih berbahaya daripada layar yang mengaku
+  // gagal, karena semua isinya terlihat seperti hasil pengukuran.
+  if (!balance) {
+    return (
+      <main className="mx-auto max-w-3xl px-5 py-16">
+        <h1 className="text-[26px] font-semibold tracking-tight text-ink">
+          Neraca Minyak Harian
+        </h1>
+        <div className="mt-6">
+          <ErrorState message={error ?? 'Backend tidak menjawab.'} />
+        </div>
+        <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">
+          Tidak ada angka yang ditampilkan di sini selama neraca belum bisa
+          dihitung. Jalankan <code>docker compose up</code>, lalu isi data shift
+          dengan <code>python scripts/seed_shift.py</code>.
+        </p>
+      </main>
+    )
+  }
 
   // Rantai perambatan membentang dari Lapis 1 ke Lapis 2, jadi halaman ini
   // butuh satu muatan sebagai wakil hulunya. Sumbernya digabung ke yang
   // paling lemah -- kalau salah satu masih data contoh, kartunya mengaku
   // data contoh.
-  const { data: grading, source: gradingSource } = await fetchBatch('1')
+  const { data: grading, source: gradingSource } = await fetchBatch(1)
 
   // Dua kartu ini dulunya memakai angka yang ditulis tangan di
   // lib/demo.ts. Datanya sebenarnya sudah ada di basis data — tinggal
@@ -147,7 +169,7 @@ export default async function NeracaPage() {
               aside={<SourceBadge source={pemasokSource} />}
             />
             <CardBody>
-              <SupplierRanking rows={pemasok} />
+              <SupplierRanking rows={pemasok ?? []} />
             </CardBody>
           </Card>
 
@@ -157,7 +179,11 @@ export default async function NeracaPage() {
               subtitle="Seberapa sering grader membantah model. Turun dari minggu ke minggu berarti model makin cocok dengan pabrik ini."
             />
             <CardBody>
-              <CorrectionCurve data={koreksi} />
+              {koreksi ? (
+                <CorrectionCurve data={koreksi} />
+              ) : (
+                <EmptyState title="Statistik koreksi belum bisa diambil" />
+              )}
             </CardBody>
           </Card>
         </div>
@@ -196,7 +222,14 @@ export default async function NeracaPage() {
           aside={<SourceBadge source={chainSource} />}
         />
         <CardBody className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:items-start">
-          <UncertaintyChain grading={grading} balance={balance} />
+          {grading ? (
+            <UncertaintyChain grading={grading} balance={balance} />
+          ) : (
+            <EmptyState
+              title="Rantai ketidakpastian belum bisa digambar"
+              hint="Butuh satu hasil grading tersimpan sebagai wakil hulunya."
+            />
+          )}
 
           <div className="rounded-lg border border-line bg-plane px-4 py-3">
             <h3 className="text-[13px] font-medium text-ink">Ambang tindakan</h3>
