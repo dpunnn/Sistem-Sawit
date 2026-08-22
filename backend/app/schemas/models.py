@@ -115,13 +115,19 @@ class DeductionBasis(BaseModel):
         default_factory=dict,
         description="Judul, penerbit, dan URL — supaya bisa ditelusuri sendiri")
     points: float
-    formula: str
+    formula: str | None = None
 
 
 class GradingResult(BaseModel):
     """Keluaran gabungan Model 1 + 2 + 4 untuk satu muatan truk."""
 
-    batch_id: int | None = None
+    # DUA id, bukan satu. Keduanya sempat memakai nama `batch_id`, dan
+    # artinya berbeda tergantung endpoint: POST mengembalikan id hasil
+    # grading, GET mengembalikan id muatan. Satu nama dengan dua makna
+    # membuat tautan sertifikat menunjuk ke nomor yang salah tanpa satu
+    # pun error muncul.
+    batch_id: int | None = Field(None, description="Id MUATAN truk")
+    grading_id: int | None = Field(None, description="Id HASIL GRADING")
     supplier: SupplierInfo | None = None
     deduction_basis: DeductionBasis | None = None
     detections: list[Detection]

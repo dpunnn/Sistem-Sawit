@@ -120,7 +120,8 @@ async def grade(
             grading_id = None
 
     return GradingResult(
-        batch_id=grading_id or batch_id,
+        batch_id=batch_id,
+        grading_id=grading_id,
         detections=hasil.detections,
         overlay_url=hasil.overlay_url,
         composition=[{"ripeness": k, "percent": v}
@@ -171,6 +172,7 @@ def ambil_grading(grading_id: int = PathParam(..., ge=1)):
 
     return GradingResult(
         batch_id=r["batch_id"],
+        grading_id=r["id"],
         detections=r["detections"] or [],
         overlay_url=r["overlay_path"],
         composition=[{"ripeness": k, "percent": v} for k, v in komposisi.items()],
