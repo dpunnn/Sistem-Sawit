@@ -35,6 +35,15 @@ services:
       - ./data:/app/data:ro
     ports:
       - "8000:8000"
+    # start_period panjang karena warm-up memuat dua bobot model. Tanpa
+    # itu, healthcheck menyatakan gagal justru saat container sedang
+    # melakukan hal yang benar.
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health', timeout=5).status==200 else 1)\""]
+      interval: 10s
+      timeout: 8s
+      retries: 10
+      start_period: 60s
 
   frontend:
     build:
@@ -43,7 +52,8 @@ services:
     environment:
       API_URL: http://backend:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "3000:3000"
 

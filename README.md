@@ -18,6 +18,7 @@ AI Innovation Challenge 2026 · COMPFEST 18 · Tema: **Smart Manufacturing**
 - [Arsitektur](#arsitektur)
 - [Stack Teknologi](#stack-teknologi)
 - [Menjalankan Secara Lokal](#menjalankan-secara-lokal)
+- [Mencoba API Langsung](#mencoba-api-langsung)
 - [Setup untuk Anggota Tim](#setup-untuk-anggota-tim)
 - [Skenario Demo](#skenario-demo)
 - [Struktur Repo](#struktur-repo)
@@ -464,7 +465,7 @@ dilakukan di luar Docker; yang masuk container hanya inferensi.
 ### Prasyarat
 
 - Docker Desktop / Docker Engine + Docker Compose v2
-- Ruang disk ~3 GB
+- Ruang disk ~4 GB (image backend ~2,7 GB, sebagian besar PyTorch CPU)
 - Tidak perlu GPU, tidak perlu Python atau Node terpasang di host
 
 ### Langkah
@@ -525,12 +526,16 @@ npm run dev
 ### Menjalankan test
 
 ```bash
-# uji lapis penalaran (Model 5 & 6) — 35 uji
+# uji lapis AI (Model 5 & 6, perambatan ketidakpastian) — 61 uji
 pytest tests/ -v
 
-# uji backend
-cd backend && pytest
+# uji jalur backend (bentuk kontrak, tanda, kebocoran lapisan) — 26 uji
+cd backend && pytest -v
 ```
+
+Keduanya perlu, dan bukan duplikasi: yang pertama menjaga aritmetikanya
+benar, yang kedua menjaga aritmetika yang benar itu tidak rusak dalam
+perjalanan menuju HTTP.
 
 Selain itu tiap modul AI punya swauji yang bisa dijalankan langsung:
 
@@ -540,6 +545,88 @@ python ai/reasoning/balance.py         # peragaan kartu neraca dua mode
 python ai/reasoning/attribution.py     # pola yang ditemukan sendiri
 python ai/evaluation/rule_recovery.py  # pemulihan aturan + 4 uji ketahanan
 ```
+
+---
+
+## Mencoba API Langsung
+
+Seluruh API terdokumentasi di **http://localhost:8000/docs** (Swagger UI)
+dan bisa dicoba dari browser tanpa menulis satu baris `curl`. Setiap
+endpoint punya deskripsi, contoh nilai, dan daftar kode error beserta
+artinya.
+
+### Urutan yang disarankan
+
+| # | Endpoint | Yang dibuktikan |
+|---|---|---|
+| 1 | `GET /api/health` | API, Postgres, bobot model, dan koefisien semuanya sehat |
+| 2 | `GET /api/shifts` | Tanggal shift yang tersedia untuk dicoba |
+| 3 | `GET /api/balance` | Kartu neraca **tiga baris** untuk shift terakhir |
+| 4 | `GET /api/attribution` | Penyebab kehilangan, tiap satu dengan selang & ambang tindakan |
+| 5 | `POST /api/grading` | Unggah foto dari `data/samples/` → deteksi, komposisi, kilogram |
+| 6 | `GET /api/coefficients` | Audit seluruh koefisien domain beserta sumbernya |
+
+Foto contoh untuk langkah 5 ada di `data/samples/` (empat berkas, ikut
+repo justru supaya langkah ini bisa dijalankan siapa pun yang baru
+clone).
+
+### Lewat curl
+
+```bash
+# kartu neraca
+curl -s localhost:8000/api/balance | jq
+
+# unggah foto muatan
+curl -s -X POST localhost:8000/api/grading \
+     -F "image=@data/samples/muatan_2.jpg" \
+     -F "gross_weight_kg=6200" | jq
+
+# atribusi, dengan koefisien yang belum terverifikasi ikut dipakai
+curl -s "localhost:8000/api/attribution?mode=lengkap" | jq
+```
+
+### Tiga hal yang layak diperhatikan di responsnya
+
+**Setiap angka hasil model membawa selang.** Tipe `Estimate` tidak punya
+varian tanpa `lo`/`hi`, jadi mustahil ada angka telanjang menyelinap
+keluar. Yang menegakkannya sistem tipe, bukan niat baik.
+
+**`uncertainty_widens` pada `/api/attribution` harus selalu `true`.**
+Selisih neraca dihitung dari beberapa angka tidak pasti sekaligus, jadi
+ragamnya menjumlah dan selangnya melebar. Kalau nilainya `false`, ada
+yang keliru pada perambatan — dan sistem sedang mengaku lebih tahu
+daripada bahan-bahannya.
+
+**`may_deduct_payment` bukan terjemahan `confidence`.** Ia menggabungkan
+dua syarat: keyakinan harus `high` **dan** selangnya tidak boleh memuat
+nol. Selama kemungkinan "tidak ada kehilangan sama sekali" belum
+tersingkir, memotong pembayaran berarti memungut uang dari
+ketidaktahuan.
+
+### Mengisi ulang data demo
+
+```bash
+python scripts/seed_shift.py --sql          # tulis ulang 02_seed.sql
+python scripts/seed_shift.py                # sisipkan ke Postgres berjalan
+```
+
+Seluruh angka seed dibangkitkan `ai/simulator/mill.py` dan
+`ai/reasoning/balance.py`, bukan diketik — sehingga barisnya
+benar-benar menutup (galat penutupan 0,00e+00). Angka yang diketik
+tangan pasti tidak menutup, dan menjumlahkan kolom neraca adalah hal
+pertama yang akan dicoba orang yang skeptis.
+
+### Penanganan berkas yang tidak wajar
+
+Diuji langsung, bukan diasumsikan:
+
+| Yang diunggah | Jawaban |
+|---|---|
+| PDF | `415` — "Format application/pdf tidak didukung. Gunakan JPG, PNG, atau WebP." |
+| JPG rusak | `422` — "Berkas tidak bisa dibaca sebagai gambar." |
+| Berkas 13 MB | `413` — "Berkas melebihi 12 MB." |
+| Tanggal shift tak ada | `404` — dengan saran menjalankan `seed_shift.py` |
+| `mode` di luar daftar | `422` — dengan daftar nilai yang sah |
 
 ---
 
@@ -778,9 +865,11 @@ Repositori ini dalam pengembangan aktif. Status jujur per commit terakhir:
 | Perambatan ketidakpastian e1→e5 | ✅ sisa **0,7228** poin, melebar dari bahannya |
 | Koreksi terpelajar di atas formula | ✅ dibatasi ±0,33 poin, beralarm |
 | Permukaan API untuk backend (5 GATE) | ✅ semua bisa dipanggil |
-| Skema & data awal database | ⏳ Belum |
-| Integrasi model ke backend | ⏳ Belum |
-| Kartu neraca di antarmuka | ⏳ Belum |
+| Skema & data awal database | ✅ 7 tabel, 11 kendala CHECK aktif |
+| Endpoint grading / neraca / atribusi | ✅ 11 rute, terdokumentasi di `/docs` |
+| Integrasi model ke backend | ✅ alur penuh unggah → atribusi lewat HTTP |
+| Kartu neraca di antarmuka | ✅ air terjun SVG, tiga baris |
+| Uji backend | ✅ **26** lulus |
 
 ### Temuan metodologis
 
