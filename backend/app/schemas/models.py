@@ -11,10 +11,20 @@ from pydantic import BaseModel, Field, computed_field
 
 
 class Estimate(BaseModel):
-    
-    value: float
-    lo: float
-    hi: float
+    """Taksiran dengan selang. TIDAK ADA varian tanpa selang.
+
+    Begitu selang boleh dimatikan, ia akan dimatikan — dan angka pasti
+    yang lahir dari masukan tidak pasti adalah kebohongan matematis.
+    Menjadikan ini tipe resmi berarti janji "jujur soal ketidakpastian"
+    ditegakkan sistem tipe, bukan niat baik.
+    """
+
+    model_config = {"json_schema_extra": {
+        "examples": [{"value": 1166.0, "lo": 1148.0, "hi": 1186.0}]}}
+
+    value: float = Field(..., description="Titik tengah taksiran")
+    lo: float = Field(..., description="Batas bawah selang 90%")
+    hi: float = Field(..., description="Batas atas selang 90%")
 
     @computed_field  
     @property
@@ -23,11 +33,17 @@ class Estimate(BaseModel):
 
 
 class Confidence(str, Enum):
- 
+    """Tingkat keyakinan, DAN konsekuensi tindakannya.
 
-    LOW = "low"        
-    MEDIUM = "medium"  
-    HIGH = "high"      
+    Angka yang sama tidak boleh memicu konsekuensi yang sama bila
+    keyakinannya berbeda. Inilah bentuk konkret *learning to defer*:
+    model tahu kapan dirinya belum cukup yakin untuk mengambil alih
+    keputusan manusia.
+    """
+
+    LOW = "low"        # ditampilkan saja, tidak memicu tindakan
+    MEDIUM = "medium"  # bahan diskusi, belum untuk memotong pembayaran
+    HIGH = "high"      # boleh jadi dasar keputusan finansial
 
 
 class RipenessClass(str, Enum):
@@ -36,9 +52,15 @@ class RipenessClass(str, Enum):
     UNDERRIPE = "underripe"
     RIPE = "ripe"
     OVERRIPE = "overripe"
+    # Ada di kontrak tetapi TIDAK PERNAH dikeluarkan model: data latih
+    # tidak punya satu pun crop busuk. Dibiarkan di enum supaya kontrak
+    # tidak perlu berubah kalau nanti datanya ada, dan disebut di sini
+    # supaya ketiadaannya tidak jadi teka-teki.
     ROTTEN = "rotten"
-    EMPTY_BUNCH = "empty_bunch"  
-    ABNORMAL = "abnormal"        
+
+    # Di luar sumbu kematangan — bukan bagian ramp ordinal.
+    EMPTY_BUNCH = "empty_bunch"
+    ABNORMAL = "abnormal"
 
 
 class Side(str, Enum):
@@ -144,3 +166,52 @@ class BalanceCard(BaseModel):
     @property
     def total_loss_points(self) -> float:
         return round(self.potential_theoretical - self.actual_oer, 3)
+
+
+# --------------------------------------------------------------------
+# Respons tambahan
+# --------------------------------------------------------------------
+
+class HealthResponse(BaseModel):
+    """Satu perintah untuk membuktikan API dan Postgres tersambung."""
+
+    status: Literal["ok", "degraded"]
+    version: str
+    database: bool = Field(..., description="Koneksi Postgres hidup")
+    detector_ready: bool = Field(..., description="Bobot model sudah dimuat")
+    coefficients_healthy: bool = Field(
+        ..., description="Tiap koefisien domain punya sumber yang terdaftar")
+
+
+class LossCause(LossAttribution):
+    """Penyebab kehilangan, lengkap dengan boleh-tidaknya jadi potongan."""
+
+    may_deduct_payment: bool = Field(
+        ...,
+        description=(
+            "Keyakinan `high` DAN selang tidak memuat nol. Dua syarat, bukan "
+            "satu: selang yang masih memuat nol berarti kemungkinan 'tidak ada "
+            "kehilangan sama sekali' belum tersingkir."
+        ))
+    action_threshold: str = Field(..., description="Terjemahan keyakinan jadi tindakan")
+
+
+class AttributionResponse(BaseModel):
+    shift_date: date
+    total_loss_points: float
+    causes: list[LossCause]
+    share: dict[str, float] = Field(
+        ..., description="Pangsa tiap pihak atas total selisih, 0..1")
+    uncertainty_widens: bool = Field(
+        ...,
+        description=(
+            "Apakah selang baris tak terjelaskan LEBIH LEBAR daripada seluruh "
+            "penyumbangnya. Harus selalu true — selisih dua angka tidak pasti "
+            "ragamnya menjumlah. Kalau false, ada yang keliru pada perambatan."
+        ))
+    closure_error: float = Field(
+        ..., description="Sisa aritmetika neraca. Harus ~0 sampai presisi mesin.")
+    coefficient_mode: str
+    notes: list[str] = Field(
+        default_factory=list,
+        description="Koefisien yang dilewati dan kenapa. Sengaja tidak disembunyikan.")
