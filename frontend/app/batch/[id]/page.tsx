@@ -37,11 +37,16 @@ export default async function BatchDetailPage({
     timeStyle: 'short',
   })
 
-  // Dasar potongan, ditulis terbuka: koefisien terbit -0,13 poin OER
-  // per 1% buah mentah.
-  const OER_PER_UNRIPE_PCT = 0.13
-  const unripePct = unripe?.percent.value ?? 0
-  const oerPenalty = unripePct * OER_PER_UNRIPE_PCT
+  // Dasar potongan datang UTUH dari backend, termasuk koefisien dan
+  // sitasinya.
+  //
+  // Sebelumnya angka 0,13 disalin ke berkas ini dan bahkan dicetak
+  // sebagai teks. Artinya kalau koefisiennya berubah — atau statusnya
+  // turun jadi belum terverifikasi — layar tetap memamerkan angka lama
+  // sambil terlihat sangat meyakinkan, dan yang dirugikan petani yang
+  // membaca sertifikatnya.
+  const dasar = batch.deduction_basis
+  const unripePct = dasar?.unripe_pct ?? unripe?.percent.value ?? 0
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-8">
@@ -51,7 +56,9 @@ export default async function BatchDetailPage({
             Sertifikat Sortasi
           </h1>
           <p className="mt-1 text-[14px] text-ink-soft">
-            Muatan #{batch.batch_id ?? id} · KUD Jaya Makmur · {scanned}
+            Muatan #{batch.batch_id ?? id}
+            {batch.supplier && ` · ${batch.supplier.name}`}
+            {batch.supplier && ` · ${batch.supplier.truck_plate}`} · {scanned}
           </p>
         </div>
         <SourceBadge source={source} />
@@ -109,7 +116,34 @@ export default async function BatchDetailPage({
               <Step n={2} />
               <span>
                 Koefisien terbit: setiap 1% buah mentah menurunkan rendemen{' '}
-                <strong className="tnum">0,13</strong> poin
+                <strong className="tnum">
+                  {dasar ? fmtPoint(dasar.coefficient_per_pct) : '—'}
+                </strong>{' '}
+                poin
+                {dasar && (
+                  <span className="text-ink-soft">
+                    {' '}
+                    — status {dasar.coefficient_status}
+                  </span>
+                )}
+                {dasar?.citation?.judul && (
+                  <span className="mt-1 block text-[12px] leading-relaxed text-ink-soft">
+                    Sumber:{' '}
+                    {dasar.citation.url ? (
+                      <a
+                        href={dasar.citation.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-mill underline underline-offset-2"
+                      >
+                        {dasar.citation.judul}
+                      </a>
+                    ) : (
+                      dasar.citation.judul
+                    )}
+                    {dasar.citation.penerbit && ` · ${dasar.citation.penerbit}`}
+                  </span>
+                )}
               </span>
             </li>
             <li className="flex gap-3">
@@ -117,11 +151,21 @@ export default async function BatchDetailPage({
               <span>
                 Dampak rendemen ={' '}
                 <span className="tnum">
-                  {fmtPct(unripePct)} × 0,13 = <strong>{fmtPoint(oerPenalty)} poin</strong>
+                  {dasar ? dasar.formula : '—'}
                 </span>
               </span>
             </li>
           </ol>
+
+          {dasar?.coefficient_status !== 'terverifikasi' && dasar && (
+            <p className="mt-3 text-[12px] leading-relaxed text-ink-soft">
+              <Warn>
+                Koefisien ini berstatus <strong>{dasar.coefficient_status}</strong>.
+                Selama belum tertelusur ke sumber terbit, angka di atas bahan
+                diskusi — bukan dasar potongan.
+              </Warn>
+            </p>
+          )}
 
           <p className="mt-4 rounded-lg border border-line bg-plane px-4 py-3 text-[13px] leading-relaxed text-ink-soft">
             <Warn>

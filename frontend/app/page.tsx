@@ -38,7 +38,16 @@ const SCENARIOS = {
 type ScenarioKey = keyof typeof SCENARIOS
 
 export default function GatePage() {
-  const [result, setResult] = useState<GradingResult | null>(demoGrading)
+  // Sengaja KOSONG saat pertama dibuka.
+  //
+  // Sebelumnya layar ini langsung menampilkan 24 kotak deteksi dari
+  // data contoh di atas gambar placeholder. Yang membuka pertama kali
+  // -- termasuk juri -- melihat hasil kerja model yang tidak pernah
+  // terjadi, dan satu-satunya penandanya badge kecil di pojok.
+  //
+  // Muatan contoh tetap tersedia satu klik lewat tombol di bawah,
+  // tetapi harus DIMINTA, tidak disodorkan sebagai hasil.
+  const [result, setResult] = useState<GradingResult | null>(null)
   const [source, setSource] = useState<DataSource>('demo')
   const [gagal, setGagal] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -46,7 +55,7 @@ export default function GatePage() {
   const [onlyLow, setOnlyLow] = useState(false)
   const [decision, setDecision] = useState<'agree' | 'correct' | null>(null)
   const [kirim, setKirim] = useState<string | null>(null)
-  const [scenario, setScenario] = useState<ScenarioKey | null>('bagus')
+  const [scenario, setScenario] = useState<ScenarioKey | null>(null)
   const rootRef = useRef<HTMLElement>(null)
 
   const memindai = status === 'scanning'
@@ -116,7 +125,7 @@ export default function GatePage() {
             Lapis 1 — Persepsi. &ldquo;Apa yang masuk?&rdquo;
           </p>
         </div>
-        <SourceBadge source={source} />
+        {result && <SourceBadge source={source} />}
       </div>
 
       {gagal && (
@@ -154,7 +163,7 @@ export default function GatePage() {
               ) : (
                 <EmptyState
                   title="Belum ada muatan yang dipindai"
-                  hint="Seret foto muatan ke area ini, atau pilih berkas lewat tombol di bawah. Sistem tidak menebak sebelum ada yang dilihat."
+                  hint="Seret foto muatan ke area ini, atau pilih berkas lewat tombol di bawah. Foto contoh tersedia di data/samples/ pada repo. Sistem tidak menampilkan angka apa pun sebelum ada yang dilihat."
                 />
               )}
             </Dropzone>

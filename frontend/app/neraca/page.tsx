@@ -1,8 +1,7 @@
 // Halaman neraca harian -- KLIMAKS produk.
 // "2,2 poin hilang. Ini rinciannya. Ini yang bisa diperbaiki."
 
-import { fetchBalance, fetchBatch } from '@/lib/api'
-import { demoCorrectionCurve, demoSuppliers } from '@/lib/demo'
+import { fetchBalance, fetchBatch, fetchCorrections, fetchSuppliers } from '@/lib/api'
 import { SIDE_FILL, fmtIDR, fmtPoint } from '@/lib/format'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Hero, Legend, SourceBadge, StatTile } from '@/components/ui/Bits'
@@ -12,7 +11,7 @@ import { AttributionTable, BalanceRows } from '@/components/neraca/BalanceRows'
 import { StationLosses } from '@/components/neraca/StationLosses'
 import { UncertaintyChain } from '@/components/neraca/UncertaintyChain'
 import { CorrectionCurve, SupplierRanking } from '@/components/neraca/Suppliers'
-import { DemoOnly, ErrorState } from '@/components/ui/States'
+import { ErrorState } from '@/components/ui/States'
 
 export default async function NeracaPage() {
   const { data: balance, source, error } = await fetchBalance()
@@ -21,7 +20,14 @@ export default async function NeracaPage() {
   // butuh satu muatan sebagai wakil hulunya. Sumbernya digabung ke yang
   // paling lemah -- kalau salah satu masih data contoh, kartunya mengaku
   // data contoh.
-  const { data: grading, source: gradingSource } = await fetchBatch('4821')
+  const { data: grading, source: gradingSource } = await fetchBatch('1')
+
+  // Dua kartu ini dulunya memakai angka yang ditulis tangan di
+  // lib/demo.ts. Datanya sebenarnya sudah ada di basis data — tinggal
+  // ditanyakan. Angka karangan di layar yang dilihat juri bukan sekadar
+  // tidak rapi; ia klaim yang tidak dimiliki sistem.
+  const { data: pemasok, source: pemasokSource } = await fetchSuppliers()
+  const { data: koreksi } = await fetchCorrections()
   const chainSource = source === 'live' && gradingSource === 'live' ? 'live' : 'demo'
 
   const supplierPoints = balance.supplier_losses.reduce((a, l) => a + l.points.value, 0)
@@ -138,21 +144,20 @@ export default async function NeracaPage() {
             <CardHeader
               title="Peringkat pemasok"
               subtitle="Persen buah mentah minggu ini, per pemasok."
-              aside={<DemoOnly note="Belum ada endpoint /api/suppliers" />}
+              aside={<SourceBadge source={pemasokSource} />}
             />
             <CardBody>
-              <SupplierRanking rows={demoSuppliers} />
+              <SupplierRanking rows={pemasok} />
             </CardBody>
           </Card>
 
           <Card>
             <CardHeader
               title="Koreksi grader per 100 muatan"
-              subtitle="Bentuk laporan yang dituju: koreksi menurun berarti model makin cocok dengan pabrik ini."
-              aside={<DemoOnly note="Belum ada endpoint, dan sistem belum pernah berjalan enam minggu" />}
+              subtitle="Seberapa sering grader membantah model. Turun dari minggu ke minggu berarti model makin cocok dengan pabrik ini."
             />
             <CardBody>
-              <CorrectionCurve data={demoCorrectionCurve} />
+              <CorrectionCurve data={koreksi} />
             </CardBody>
           </Card>
         </div>
