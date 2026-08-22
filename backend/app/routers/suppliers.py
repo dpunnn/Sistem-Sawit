@@ -117,3 +117,47 @@ def koreksi_grader():
             "Belum boleh disajikan sebagai bukti sistem membaik."
         ),
     }
+
+
+@router.get(
+    "/batches",
+    summary="Daftar muatan truk beserta status gradingnya",
+    tags=["grading"],
+    description=(
+        "Dipakai layar gerbang untuk dua hal: memilih muatan mana yang sedang "
+        "ditimbang sebelum foto diunggah, dan menautkan hasil ke sertifikat "
+        "sortasi yang benar-benar ada. "
+        "Tanpa daftar ini, unggahan tidak punya `batch_id` — hasilnya tidak "
+        "tersimpan, dan tautan ke sertifikat menunjuk id yang tidak pernah ada."
+    ),
+)
+def daftar_muatan(shift_date: date | None = Query(None), limit: int = Query(50, ge=1, le=200)):
+    syarat = "WHERE b.shift_date = %s" if shift_date else ""
+    argumen = ((shift_date, limit) if shift_date else (limit,))
+    with get_conn() as conn:
+        rows = conn.execute(f"""
+            SELECT b.id, b.truck_plate, b.gross_weight_kg, b.queue_hours,
+                   b.shift_date, s.name AS supplier, s.kind,
+                   g.id AS grading_id,
+                   (g.composition->'unripe'->>'v')::numeric AS unripe_pct
+            FROM batch b
+            JOIN supplier s ON s.id = b.supplier_id
+            LEFT JOIN LATERAL (
+                SELECT id, composition FROM grading_result
+                WHERE batch_id = b.id ORDER BY id LIMIT 1
+            ) g ON TRUE
+            {syarat}
+            ORDER BY b.received_at
+            LIMIT %s
+        """, argumen).fetchall()
+    return [{
+        "id": r["id"],
+        "truck_plate": r["truck_plate"],
+        "supplier": r["supplier"],
+        "kind": r["kind"],
+        "gross_weight_kg": float(r["gross_weight_kg"]),
+        "queue_hours": float(r["queue_hours"]),
+        "shift_date": r["shift_date"],
+        "grading_id": r["grading_id"],
+        "unripe_pct": float(r["unripe_pct"]) if r["unripe_pct"] is not None else None,
+    } for r in rows]
