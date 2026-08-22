@@ -99,46 +99,58 @@ export default async function NeracaPage() {
       )}
 
       {/* ---- Angka pahlawan + ringkasan dua arah ---- */}
+      {/* Kolom kiri memakai lebar `auto`, jadi apa pun yang panjang di
+       *  dalam Hero akan MENGHIMPIT tiga kartu di kanan sampai teksnya
+       *  saling menumpuk. Penjelasan panjang karena itu diletakkan di
+       *  bawah grid, selebar kartu — bukan di dalam kolomnya. */}
       <Card className="mt-6">
-        <CardBody className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
-          <Hero
-            label="Kehilangan hari ini"
-            value={
-              <>
-                {fmtPoint(balance.total_loss_points)}
-                <span className="ml-2 text-[22px] font-normal text-ink-soft">poin</span>
-              </>
-            }
-            note={
-              <>
-                Potensi {fmtPoint(balance.potential_theoretical)}% → aktual{' '}
-                {fmtPoint(balance.actual_oer)}%
-                <span className="mt-1 block text-[12px] text-ink-muted">
-                  Angka ini TETAP sepanjang shift: keduanya datang dari koefisien
-                  terbit dan dari jembatan timbang, bukan dari model. Yang
-                  bergerak saat muatan dipindai adalah PEMBAGIANNYA di bawah.
-                </span>
-              </>
-            }
-          />
+        <CardBody>
+          <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
+            <Hero
+              label="Kehilangan hari ini"
+              value={
+                <>
+                  {fmtPoint(balance.total_loss_points)}
+                  <span className="ml-2 text-[22px] font-normal text-ink-soft">
+                    poin
+                  </span>
+                </>
+              }
+              note={
+                <>
+                  Potensi {fmtPoint(balance.potential_theoretical)}% → aktual{' '}
+                  {fmtPoint(balance.actual_oer)}%
+                </>
+              }
+            />
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile
-              label="Sisi pemasok"
-              value={`${fmtPoint(supplierPoints)} poin`}
-              note="Mutu buah yang masuk"
-            />
-            <StatTile
-              label="Sisi pabrik"
-              value={`${fmtPoint(millPoints)} poin`}
-              note="Perebusan, kempa, klarifikasi"
-            />
-            <StatTile
-              label="Nilai kehilangan"
-              value={fmtIDR(balance.loss_value_idr)}
-              note="Shift ini"
-            />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatTile
+                label="Sisi pemasok"
+                value={`${fmtPoint(supplierPoints)} poin`}
+                note="Mutu buah yang masuk"
+              />
+              <StatTile
+                label="Sisi pabrik"
+                value={`${fmtPoint(millPoints)} poin`}
+                note="Perebusan, kempa, klarifikasi"
+              />
+              <StatTile
+                label="Nilai kehilangan"
+                value={fmtIDR(balance.loss_value_idr)}
+                note="Shift ini"
+              />
+            </div>
           </div>
+
+          <p className="mt-5 border-t border-line pt-4 text-[12px] leading-relaxed text-ink-soft">
+            Angka <strong>{fmtPoint(balance.total_loss_points)} poin</strong> tetap
+            sepanjang shift: potensi teoretis datang dari koefisien terbit dan
+            rendemen aktual dari jembatan timbang — keduanya bukan keluaran model.
+            Yang bergerak setiap kali muatan dipindai adalah{' '}
+            <strong>pembagiannya</strong> antara sisi pemasok, sisi pabrik, dan
+            bagian yang tidak diatribusikan ke siapa pun.
+          </p>
         </CardBody>
       </Card>
 
