@@ -32,8 +32,56 @@ export type CompositionItem = {
 }
 
 /** Keluaran gabungan Model 1 + 2 + 4 untuk satu muatan truk. */
+/** Identitas muatan. Datang dari basis data, tidak pernah ditulis di layar. */
+export type SupplierInfo = {
+  name: string
+  kind: string
+  truck_plate: string
+  gross_weight_kg: number
+  queue_hours: number
+  shift_date: string
+}
+
+/** Aritmetika potongan beserta sitasi koefisiennya.
+ *
+ *  Koefisien TIDAK BOLEH ditulis di frontend. Kalau nilainya berubah,
+ *  layar yang menyalinnya akan memamerkan angka lama sambil terlihat
+ *  sangat meyakinkan — dan yang dirugikan petani yang membaca
+ *  sertifikatnya. */
+export type DeductionBasis = {
+  unripe_pct: number
+  coefficient_per_pct: number
+  coefficient_status: string
+  coefficient_source: string
+  citation: { judul?: string | null; penerbit?: string | null; url?: string | null }
+  points: number
+  formula: string
+}
+
+export type SupplierRank = {
+  name: string
+  kind: string
+  n_muatan: number
+  unripe_pct: number | null
+  ripe_pct: number | null
+  gross_weight_kg: number
+  queue_hours_avg: number
+}
+
+export type CorrectionStats = {
+  n_keputusan: number
+  n_koreksi: number
+  rasio_koreksi: number | null
+  cukup_data: boolean
+  ambang_cukup_data: number
+  per_minggu: { week: string; n_keputusan: number; n_koreksi: number; per_100_muatan: number }[]
+  catatan: string
+}
+
 export type GradingResult = {
   batch_id?: number | null
+  supplier?: SupplierInfo | null
+  deduction_basis?: DeductionBasis | null
   detections: Detection[]
   overlay_url?: string | null
   composition: CompositionItem[]

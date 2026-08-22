@@ -200,39 +200,13 @@ export const demoBalance: BalanceCard = {
   ],
 }
 
-/** Peringkat pemasok. ANGKA KARANGAN -- belum ada di kontrak Pydantic
- *  dan belum ada endpoint-nya, jadi kartu ini tidak akan pernah berubah
- *  jadi 'live' tanpa pekerjaan tambahan. Wajib diberi penanda DemoOnly
- *  di layar. Kalau backend nanti menyediakannya, tambahkan skemanya di
- *  kedua sisi sekaligus. */
-export type SupplierRow = {
-  name: string
-  unripePct: number
-  trend: number[]
-  loads: number
-}
-
-export const demoSuppliers: SupplierRow[] = [
-  { name: 'KUD Jaya Makmur', unripePct: 4.2, trend: [6.1, 5.4, 4.9, 4.2], loads: 38 },
-  { name: 'KUD Tani Sejahtera', unripePct: 6.8, trend: [7.0, 6.6, 6.9, 6.8], loads: 24 },
-  { name: 'Pemasok A', unripePct: 15.4, trend: [9.8, 11.6, 13.5, 15.4], loads: 31 },
-  { name: 'Pemasok C', unripePct: 13.1, trend: [12.4, 12.9, 12.6, 13.1], loads: 19 },
-  { name: 'Pemasok F', unripePct: 11.7, trend: [8.2, 9.4, 10.8, 11.7], loads: 22 },
-]
-
-/** Koreksi grader per 100 muatan, minggu ke minggu.
+/* Peringkat pemasok dan kurva koreksi grader DIHAPUS dari berkas ini.
  *
- *  ANGKA KARANGAN. Tidak ada endpoint yang menyediakannya, tidak ada
- *  tabelnya di skema, dan sistem belum pernah dijalankan enam minggu di
- *  pabrik mana pun. Sebelumnya kurva ini dilabeli "bukti sistem
- *  benar-benar mempelajari pabrik ini" -- klaim yang datanya tidak ada.
- *  Ia dipertahankan hanya sebagai contoh BENTUK laporan, dan wajib
- *  diberi penanda DemoOnly di layar. */
-export const demoCorrectionCurve = [
-  { week: 'M1', corrections: 31 },
-  { week: 'M2', corrections: 26 },
-  { week: 'M3', corrections: 22 },
-  { week: 'M4', corrections: 17 },
-  { week: 'M5', corrections: 14 },
-  { week: 'M6', corrections: 11 },
-]
+ * Keduanya dulu angka karangan yang ditulis tangan, dan salah satunya
+ * bahkan dilabeli "bukti sistem benar-benar mempelajari pabrik ini" —
+ * klaim yang datanya tidak pernah ada.
+ *
+ * Sekarang keduanya datang dari basis data lewat /api/suppliers dan
+ * /api/corrections. Konsekuensinya kartu koreksi akan KOSONG pada
+ * pemasangan baru, dan memang itu keadaan yang sebenarnya.
+ */

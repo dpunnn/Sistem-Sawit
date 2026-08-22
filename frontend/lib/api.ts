@@ -1,7 +1,13 @@
 // Klien fetch ke backend. Selalu lewat path relatif /api/* supaya
 // ditangani rewrites di next.config.js -- jangan pernah hardcode
 // http://backend:8000 di sini, itu tidak dikenal browser.
-import type { BalanceCard, GradingResult, GraderDecision } from '@/types'
+import type {
+  BalanceCard,
+  CorrectionStats,
+  GraderDecision,
+  GradingResult,
+  SupplierRank,
+} from '@/types'
 import { demoBalance, demoGrading } from './demo'
 
 export const API_BASE = '/api'
@@ -89,6 +95,27 @@ export function fetchBatch(id: string): Promise<Loaded<GradingResult>> {
   return withFallback(path, () => getJSON<GradingResult>(path), {
     ...demoGrading,
     batch_id: Number(id) || demoGrading.batch_id,
+  })
+}
+
+/** Peringkat pemasok, dihitung backend dari hasil grading tersimpan.
+ *  Jalur mundurnya daftar KOSONG, bukan daftar karangan: kartu yang
+ *  tidak punya data harus mengaku kosong, bukan menampilkan nama
+ *  pemasok yang tidak pernah ada. */
+export function fetchSuppliers(shift?: string): Promise<Loaded<SupplierRank[]>> {
+  const q = shift ? `?shift_date=${encodeURIComponent(shift)}` : ''
+  const path = `/suppliers${q}`
+  return withFallback(path, () => getJSON<SupplierRank[]>(path), [])
+}
+
+/** Statistik koreksi grader. Jalur mundurnya `cukup_data: false`,
+ *  supaya layar menampilkan keadaan kosong alih-alih tren palsu. */
+export function fetchCorrections(): Promise<Loaded<CorrectionStats>> {
+  const path = '/corrections'
+  return withFallback(path, () => getJSON<CorrectionStats>(path), {
+    n_keputusan: 0, n_koreksi: 0, rasio_koreksi: null,
+    cukup_data: false, ambang_cukup_data: 20, per_minggu: [],
+    catatan: 'Backend belum terhubung, jadi belum ada koreksi yang bisa dibaca.',
   })
 }
 
