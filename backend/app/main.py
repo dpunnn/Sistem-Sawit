@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from app.core.db import close_pool, init_pool, ping  # noqa: E402
-from app.routers import attribution, balance, grading  # noqa: E402
+from app.routers import attribution, balance, grading, suppliers  # noqa: E402
 from app.schemas.models import HealthResponse  # noqa: E402
 from app.services.grading import DIR_OVERLAY, layanan  # noqa: E402
 
@@ -85,6 +85,10 @@ TAGS = [
      "description": (
          "Lapis 2 — Penalaran. *Ke mana perginya?* Model 5 menutup neraca "
          "dalam struktur tiga baris yang mencegah penghitungan ganda.")},
+    {"name": "pemasok",
+     "description": (
+         "Peringkat pemasok dan koreksi grader, dihitung dari basis data. "
+         "Bahan diskusi, bukan dasar potongan.")},
     {"name": "atribusi",
      "description": (
          "Lapis 2 — Model 6 memecah kehilangan jadi penyebab tanpa pernah "
@@ -190,6 +194,7 @@ def koefisien():
 app.include_router(grading.router)
 app.include_router(balance.router)
 app.include_router(attribution.router)
+app.include_router(suppliers.router)
 
 # Gambar overlay disajikan sebagai berkas statis supaya frontend cukup
 # memasang <img src=...> tanpa perlu menangani biner.
