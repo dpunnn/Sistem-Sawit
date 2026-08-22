@@ -114,61 +114,97 @@ export const demoGradingUnripe: GradingResult = {
   processed_at: '2026-08-03T15:06:00Z',
 }
 
+/** Neraca contoh -- BUKAN angka karangan.
+ *
+ *  Seluruh isi objek ini dibangkitkan oleh lapis AI yang sebenarnya:
+ *
+ *      ai/simulator/mill.py   -> muatan 240 ton, 12% mentah, restan 9 jam,
+ *                                gangguan perebusan kurang matang
+ *      ai/reasoning/balance.py -> mode terverifikasi (bawaan sistem)
+ *
+ *  Bisa dicek ulang di notebook 08. Yang penting: barisnya benar-benar
+ *  berjumlah (galat penutupan 0,00e+00), jadi layar cadangan ini tidak
+ *  memamerkan aritmetika yang tidak dimiliki sistem aslinya.
+ *
+ *  Baris tak terjelaskan sengaja besar (2,005 poin). Itu bukan
+ *  kelemahan yang lupa disembunyikan, melainkan akibat langsung mode
+ *  terverifikasi menolak tiga koefisien yang belum tertelusur ke sumber
+ *  terbit -- termasuk penalti restan. Yang tidak jadi dituduhkan tidak
+ *  dipindahkan ke pihak lain; ia muncul sebagai ketidaktahuan. */
 export const demoBalance: BalanceCard = {
   shift_date: '2026-08-03',
-  potential_theoretical: 21.4,
+  potential_theoretical: 21.0,
 
   supplier_losses: [
     {
-      cause: 'Buah mentah',
+      cause: 'Mutu buah masuk',
       side: 'supplier',
-      points: { value: 0.7, lo: 0.45, hi: 0.95 },
+      points: { value: 1.56, lo: 1.17, hi: 1.95 },
       confidence: 'medium',
-      detail: 'Terkonsentrasi pada pemasok A, C, F',
+      detail: '12% mentah. Penalti kurang masak & terlalu masak dilewati — belum terverifikasi',
     },
   ],
 
-  potential_realistic: 20.7,
+  potential_realistic: 19.44,
 
+  // Pengelompokan mengikuti pola yang DITEMUKAN SENDIRI Model 6 dari
+  // riwayat giling, bukan daftar stasiun yang ditulis manusia.
+  // "Perebusan kurang matang" adalah pola naik janjang+ampas dengan
+  // kosinus 0,998 terhadap tanda tangan yang ditanam.
   mill_losses: [
     {
-      cause: 'Restan 9 jam',
+      cause: 'Perebusan kurang matang',
       side: 'mill',
-      points: { value: 0.5, lo: 0.35, hi: 0.65 },
+      points: { value: 1.257, lo: 1.17, hi: 1.35 },
       confidence: 'high',
-      detail: 'Keputusan antrian bongkar, bukan mutu buah',
+      detail: 'Kondensat + janjang kosong naik bersamaan — setelan sterilisasi',
     },
     {
-      cause: 'Sterilisasi',
+      cause: 'Stasiun kempa',
       side: 'mill',
-      points: { value: 0.6, lo: 0.4, hi: 0.8 },
+      points: { value: 0.692, lo: 0.64, hi: 0.74 },
       confidence: 'medium',
-      detail: 'Setelan tetap, tidak menyesuaikan komposisi muatan',
+      detail: 'Ampas kempa 4,80% terhadap contoh, di atas standar 5%… mendekati batas',
     },
     {
-      cause: 'Ampas kempa',
+      cause: 'Stasiun klarifikasi',
       side: 'mill',
-      points: { value: 0.2, lo: 0.1, hi: 0.3 },
-      confidence: 'high',
-      detail: 'Di atas standar 5%',
+      points: { value: 0.266, lo: 0.25, hi: 0.29 },
+      confidence: 'medium',
+      detail: 'Underflow CST, sludge, fat pit, deoiling pond',
     },
   ],
 
   unexplained: {
     cause: 'Tidak terjelaskan',
     side: 'unknown',
-    points: { value: 0.2, lo: -0.1, hi: 0.5 },
+    points: { value: 2.005, lo: 1.55, hi: 2.46 },
     confidence: 'low',
-    detail: 'Perlu diperiksa: kebocoran, kalibrasi timbangan, atau galat ukur',
+    detail:
+      'Termasuk restan 9 jam yang koefisiennya belum terverifikasi, jadi tidak dibebankan ke siapa pun',
   },
 
-  actual_oer: 19.2,
-  loss_value_idr: 47_300_000,
-  total_loss_points: 2.2,
+  actual_oer: 15.219,
+  loss_value_idr: 208_411_402,
+  total_loss_points: 5.781,
+
+  station_losses: [
+    { station: 'Sterilizer', oil_content_pct: 1.68, mass_ratio: 0.13, points: 0.219, standard_pct: 1.0 },
+    { station: 'Thresher', oil_content_pct: 4.51, mass_ratio: 0.23, points: 1.038, standard_pct: 3.0 },
+    { station: 'Press — ampas kempa', oil_content_pct: 4.8, mass_ratio: 0.14, points: 0.671, standard_pct: 5.0 },
+    { station: 'Press — nut in fiber', oil_content_pct: 0.41, mass_ratio: 0.05, points: 0.021, standard_pct: null },
+    { station: 'Klarifikasi — underflow CST', oil_content_pct: 7.04, mass_ratio: 0.03, points: 0.211, standard_pct: null },
+    { station: 'Klarifikasi — sludge separator', oil_content_pct: 0.66, mass_ratio: 0.04, points: 0.026, standard_pct: 1.0 },
+    { station: 'Klarifikasi — fat pit', oil_content_pct: 0.81, mass_ratio: 0.02, points: 0.016, standard_pct: null },
+    { station: 'Klarifikasi — deoiling pond', oil_content_pct: 0.65, mass_ratio: 0.02, points: 0.013, standard_pct: null },
+  ],
 }
 
-/** Peringkat pemasok. Belum ada di kontrak Pydantic -- kalau backend
- *  nanti menyediakannya, tambahkan skemanya di kedua sisi sekaligus. */
+/** Peringkat pemasok. ANGKA KARANGAN -- belum ada di kontrak Pydantic
+ *  dan belum ada endpoint-nya, jadi kartu ini tidak akan pernah berubah
+ *  jadi 'live' tanpa pekerjaan tambahan. Wajib diberi penanda DemoOnly
+ *  di layar. Kalau backend nanti menyediakannya, tambahkan skemanya di
+ *  kedua sisi sekaligus. */
 export type SupplierRow = {
   name: string
   unripePct: number
@@ -184,35 +220,14 @@ export const demoSuppliers: SupplierRow[] = [
   { name: 'Pemasok F', unripePct: 11.7, trend: [8.2, 9.4, 10.8, 11.7], loads: 22 },
 ]
 
-/** Kehilangan minyak terukur per stasiun. Belum ada di kontrak Pydantic
- *  (tabel `station_loss` menyusul) -- kalau backend nanti menyediakannya,
- *  tambahkan skemanya di kedua sisi sekaligus. */
-export type StationLossRow = {
-  station: string
-  stream: string
-  pct: number
-}
-
-/** Nilai kalibrasi dari studi kasus terpublikasi, sama persis dengan
- *  yang dipakai simulator di `ai/simulator/mill.py`.
+/** Koreksi grader per 100 muatan, minggu ke minggu.
  *
- *  Angka-angka ini SENGAJA ditampilkan mentah di layar: inilah bagian
- *  sistem yang deterministik dan bisa diaudit siapa pun. Kalau juri
- *  ingin memeriksa dasar ilmiahnya, cukup satu berkas -- tidak perlu
- *  membongkar bobot model. */
-export const demoStationLosses: StationLossRow[] = [
-  { station: 'Sterilizer', stream: 'Kondensat', pct: 1.83 },
-  { station: 'Thresher', stream: 'Janjang kosong', pct: 2.44 },
-  { station: 'Press', stream: 'Ampas kempa', pct: 4.17 },
-  { station: 'Press', stream: 'Nut in fiber', pct: 0.41 },
-  { station: 'Klarifikasi', stream: 'Underflow CST', pct: 7.04 },
-  { station: 'Klarifikasi', stream: 'Sludge', pct: 0.66 },
-  { station: 'Klarifikasi', stream: 'Fat pit', pct: 0.81 },
-  { station: 'Klarifikasi', stream: 'Deoiling pond', pct: 0.65 },
-]
-
-/** Kurva andalan: koreksi grader per 100 muatan, minggu ke minggu.
- *  Bukti sistem benar-benar mempelajari pabrik ini. */
+ *  ANGKA KARANGAN. Tidak ada endpoint yang menyediakannya, tidak ada
+ *  tabelnya di skema, dan sistem belum pernah dijalankan enam minggu di
+ *  pabrik mana pun. Sebelumnya kurva ini dilabeli "bukti sistem
+ *  benar-benar mempelajari pabrik ini" -- klaim yang datanya tidak ada.
+ *  Ia dipertahankan hanya sebagai contoh BENTUK laporan, dan wajib
+ *  diberi penanda DemoOnly di layar. */
 export const demoCorrectionCurve = [
   { week: 'M1', corrections: 31 },
   { week: 'M2', corrections: 26 },
