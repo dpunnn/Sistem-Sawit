@@ -775,6 +775,9 @@ Repositori ini dalam pengembangan aktif. Status jujur per commit terakhir:
 | Model 5 — neraca tiga baris | ✅ **19/19** uji lulus, galat penutupan 0,00e+00 |
 | Model 6 — atribusi tanpa label | ✅ **4/5** aturan pulih, kosinus 0,93–0,9995 |
 | Tata kelola koefisien (34 angka, 0 tanpa sumber) | ✅ audit SEHAT |
+| Perambatan ketidakpastian e1→e5 | ✅ sisa **0,7228** poin, melebar dari bahannya |
+| Koreksi terpelajar di atas formula | ✅ dibatasi ±0,33 poin, beralarm |
+| Permukaan API untuk backend (5 GATE) | ✅ semua bisa dipanggil |
 | Skema & data awal database | ⏳ Belum |
 | Integrasi model ke backend | ⏳ Belum |
 | Kartu neraca di antarmuka | ⏳ Belum |

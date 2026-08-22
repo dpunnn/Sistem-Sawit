@@ -666,6 +666,127 @@ sistem, bukan menanggungnya.
 
 ---
 
+## 10. Perambatan ketidakpastian dan koreksi terpelajar
+
+### e4 — kenapa selisih harus MELEBAR
+
+Selisih neraca dihitung dari beberapa angka yang semuanya tidak pasti:
+komposisi taksiran (e2), hasil ukur laboratorium per aliran, dan jembatan
+timbang. Ragamnya menjumlah, jadi selangnya melebar. Sistem yang melaporkan
+selisih lebih sempit daripada bahan-bahannya sedang mengaku tahu lebih banyak
+daripada yang mungkin.
+
+Dipakai Monte Carlo alih-alih rumus rambat analitik, karena baris pemasok
+berasal dari selang komposisi yang tidak berbentuk normal dan saling terikat
+lewat kendala berjumlah satu. Rumus analitik akan mengasumsikan bentuk yang
+tidak dimiliki datanya.
+
+| Penyumbang | Lebar selang 90% |
+|---|---|
+| Baris pemasok (mutu buah masuk) | 0,6368 poin |
+| Baris pabrik terlebar (janjang kosong) | 0,1153 poin |
+| Akar jumlah kuadrat seluruh penyumbang | 0,6594 poin |
+| **Baris tak terjelaskan (e4)** | **0,7228 poin** |
+
+Sisa lebih lebar daripada akar-jumlah-kuadrat karena ketidakpastian jembatan
+timbang menyentuh seluruh neraca sekaligus. Sifat ini dijaga uji
+`test_sisa_lebih_lebar_daripada_bahannya` dan
+`test_ragam_menjumlah_bukan_mengambil_yang_terbesar`.
+
+Bila selang komposisi tidak diberikan, baris pemasok diperlakukan sebagai
+titik — dan sistem **mengatakannya** lewat `catatan`, alih-alih membiarkan
+kelalaian menyamar jadi kepastian.
+
+### Keyakinan per baris
+
+Dua hal menurunkan keyakinan, dan keduanya dihormati:
+
+1. **Selang yang memuat nol.** Selama "tidak ada kehilangan sama sekali" belum
+   tersingkir, baris itu tidak boleh jadi dasar potongan — berapa pun sempitnya
+   angka tengahnya.
+2. **Koefisien yang belum tertelusur.** Angka boleh terlihat rapi; rapi bukan
+   sahih.
+
+### AI-2.2.3 — koreksi terpelajar DI ATAS formula
+
+Formula potensi bisa dihitung ulang dengan kalkulator, dan itu satu-satunya
+alasan angkanya boleh dipakai dalam sengketa harga. Tetapi formula tidak bisa
+belajar kekhasan satu pabrik. Jalan tengahnya:
+
+```
+OER = formula(komposisi) + koreksi(komposisi)
+      \____ terlacak ___/   \__ maksimum ±0,33 poin __/
+```
+
+Tiga pagar yang membuatnya tetap alat bukti: **terbatas** (dipotong pada 0,33
+poin), **terpisah** (nilai formula dan koreksi dilaporkan sendiri-sendiri, tidak
+pernah menyatu), dan **berbunyi** (koreksi > 0,25 poin menyalakan alarm).
+
+Yang dipelajari adalah **sisa** formula, bukan rendemen itu sendiri. Bedanya
+menentukan: model yang belajar langsung dari rendemen akan selalu menemukan
+sesuatu, termasuk dari derau. Model yang belajar dari sisa menuju nol dengan
+sendirinya bila formulanya sudah benar.
+
+| Percobaan | Yang ditanam | Koreksi dipulihkan | Alarm |
+|---|---|---|---|
+| Koefisien terbit memang berlaku | 0 | −0,004 poin | tidak |
+| Pabrik dengan kekhasan varietas | +0,150 | **+0,153** | tidak |
+| Kehilangan pabrik bocor ke sisi pemasok | −0,600 | −0,592 → dipotong −0,330 | **YA** |
+
+Percobaan ketiga adalah yang terpenting: kalau kehilangan sisi pabrik bocor
+masuk, koreksi **tidak** boleh menyerapnya diam-diam — itu akan menagihkan
+antrean bongkar kepada petani. Ia dipotong pada batas dan alarmnya berbunyi.
+
+Daftar fitur dikunci ke empat proporsi kematangan saja. Fitur apa pun yang
+menyangkut proses pabrik ditolak oleh `_periksa_fitur`, dijaga uji terhadap
+lima nama terlarang.
+
+### Permukaan API resmi
+
+GATE AI-1 sampai AI-4 menyebut nama tertentu. Nama itu kini ada sebagai lapis
+tipis di atas modul internal, supaya perubahan istilah di sisi AI tidak
+menyentuh backend:
+
+| GATE | API | Keluaran |
+|---|---|---|
+| AI-1 | `Detector.predict(gambar)` | `list[Detection]` |
+| AI-2 | `composition.infer(...)` | `dict[str, Selang]` |
+| AI-2 | `potential.estimate(...)` | `PotensiMinyak` berselang |
+| AI-3 | `balance.reconcile(...)` | `KartuNeraca` tiga baris |
+| AI-4 | `attribution.decompose(...)` | `Diagnosa` berselang |
+
+`attribution.decompose` menolak dipanggil sebelum `pelajari_riwayat`. Itu
+disengaja: sistem yang bisa menuduh sebelum melihat riwayat pabriknya sendiri
+sedang menebak.
+
+### Dua berkas yang tercentang tetapi kosong
+
+Ditemukan saat menutup bagian ini, dan dicatat supaya polanya dikenali:
+
+- `ai/evaluation/calibration.py` — 0 baris, padahal AI-2.1.5 sudah tercentang.
+- `ai/perception/detector.py` — 11 baris docstring saja, padahal AI-1.4.2 sudah
+  tercentang dan GATE AI-1 menuntut `Detector.predict()`.
+
+Keduanya kini terisi. Pelajarannya: centang di pipeline bukan bukti; yang
+membuktikan adalah berkas yang bisa dijalankan.
+
+### Dua kekeliruan yang tertangkap saat memasang detektor
+
+1. **Head yang dipakai bermode `ce`, bukan CORAL.** Docstring `detector.py`
+   masih menuliskan CORAL sebagai keputusan, padahal hipotesis itu sudah diuji
+   dan kalah (bagian 5). Modul kini membaca mode langsung dari checkpoint
+   alih-alih menebaknya.
+2. **Ukuran crop 128, bukan 256.** Nilai itu tersimpan di checkpoint bersama
+   normalisasinya. Menuliskannya ulang di sisi inferensi adalah cara paling umum
+   head menerima gambar yang tidak pernah dilihatnya sewaktu belajar — dan
+   gejalanya bukan error, melainkan akurasi yang diam-diam anjlok.
+
+Pemetaan kelas diverifikasi terhadap label sebenarnya pada 25 citra uji: 76
+tandan pada label menghasilkan 86 deteksi berkematangan, 12 abnormal
+menghasilkan 9 abnormal.
+
+---
+
 ## Ringkasan klaim yang boleh dibuat
 
 1. Split resmi dataset publik yang dipakai **terbukti bocor sepenuhnya**, dan
@@ -704,6 +825,15 @@ sistem, bukan menanggungnya.
     dengan tanda tangan berimpit tidak dapat dipisahkan metode tanpa label.
 14. Kebutuhan riwayat minimum terukur: **120 hari giling** sebelum modul
     atribusi layak dinyalakan.
+15. Ketidakpastian **terbukti merambat ke arah yang benar**: baris tak
+    terjelaskan (0,7228 poin) lebih lebar daripada seluruh penyumbangnya dan
+    daripada akar-jumlah-kuadratnya (0,6594 poin).
+16. Koreksi terpelajar **memulihkan kekhasan pabrik yang nyata** (+0,150
+    ditanam, +0,153 dipulihkan) sambil **menolak menyerap kebocoran sisi
+    pabrik**: bias −0,600 dipotong pada batas dan menyalakan alarm.
+17. Formula tetap memegang hasil akhir: koreksi dibatasi ±0,33 poin dan
+    dilaporkan terpisah, sehingga keterlacakan tidak ditukar dengan kemampuan
+    belajar.
 
 ## Yang TIDAK boleh diklaim
 
@@ -731,3 +861,10 @@ sistem, bukan menanggungnya.
   sistem menyentuh keputusan pembayaran.
 - Bahwa modul atribusi bisa dinyalakan sejak hari pertama pemasangan. Di bawah
   120 hari riwayat, ia belum layak menunjuk sebab.
+- Bahwa koreksi terpelajar sudah divalidasi terhadap pabrik nyata. Ia diuji
+  terhadap bias yang ditanam sendiri. Yang terbukti adalah mekanismenya benar
+  — memulihkan yang wajar, menolak yang mencurigakan — bukan bahwa ia sudah
+  mengenal pabrik mana pun.
+- Bahwa selang e4 sudah terkalibrasi terhadap kenyataan. Ia rambatan yang
+  benar secara aritmetika dari selang-selang masukan; kalau salah satu masukan
+  itu belum terkalibrasi di lapangan, hasilnya ikut mewarisi keterbatasan itu.
