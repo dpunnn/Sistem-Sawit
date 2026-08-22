@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.db import get_conn
 from app.schemas.models import GraderDecision, GradingResult
-from app.services import kontrak
+from app.services import kontrak, reasoning
 from app.services.grading import layanan
 
 router = APIRouter(prefix="/api", tags=["grading"])
@@ -157,12 +157,29 @@ def ambil_grading(grading_id: int = PathParam(..., ge=1)):
             detail={"pesan": f"Grading {grading_id} tidak ada.",
                     "saran": "Periksa id, atau jalankan scripts/seed_shift.py."})
 
+    komposisi = kontrak.komposisi_dari_db(r["composition"])
+
+    # Nama pemasok datang dari basis data, bukan ditulis di layar.
+    # Sertifikat sortasi yang menyebut nama pemasok yang salah lebih
+    # buruk daripada sertifikat yang tidak menyebut nama sama sekali.
+    with get_conn() as conn:
+        sup = conn.execute(
+            "SELECT s.name, s.kind, b.truck_plate, b.gross_weight_kg, "
+            "       b.queue_hours, b.shift_date "
+            "FROM batch b JOIN supplier s ON s.id = b.supplier_id "
+            "WHERE b.id = %s", (r["batch_id"],)).fetchone() if r["batch_id"] else None
+
     return GradingResult(
         batch_id=r["batch_id"],
         detections=r["detections"] or [],
         overlay_url=r["overlay_path"],
-        composition=[{"ripeness": k, "percent": v} for k, v
-                     in kontrak.komposisi_dari_db(r["composition"]).items()],
+        composition=[{"ripeness": k, "percent": v} for k, v in komposisi.items()],
+        supplier=(dict(name=sup["name"], kind=sup["kind"],
+                       truck_plate=sup["truck_plate"],
+                       gross_weight_kg=float(sup["gross_weight_kg"]),
+                       queue_hours=float(sup["queue_hours"]),
+                       shift_date=sup["shift_date"]) if sup else None),
+        deduction_basis=reasoning.dasar_potongan(komposisi),
         potential_oil_kg={"value": float(r["potential_oil_kg"]),
                           "lo": float(r["potential_lo"]),
                           "hi": float(r["potential_hi"])},

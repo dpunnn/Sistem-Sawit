@@ -197,3 +197,36 @@ def simpan_kartu(kartu_dict: dict, conn, *, mode: str = "terverifikasi") -> None
          kartu_dict["potential_realistic"], kartu_dict["actual_oer"],
          json.dumps(atribusi), kartu_dict["loss_value_idr"], mode),
     )
+
+
+def dasar_potongan(komposisi: dict, *, mode: str = "terverifikasi") -> dict:
+    """Aritmetika potongan yang bisa dihitung ulang oleh yang membacanya.
+
+    Koefisiennya DIBACA dari ai/config/coefficients.yaml, tidak pernah
+    ditulis di sini maupun di frontend. Sebelumnya angka 0,13 disalin ke
+    berkas React dan bahkan dicetak sebagai teks — artinya kalau
+    koefisiennya berubah, layar tetap memamerkan angka lama sambil
+    terlihat sangat meyakinkan.
+
+    Sitasi ikut dikirim supaya petani yang membantah bisa menelusuri
+    sumbernya sendiri, bukan disuruh percaya.
+    """
+    izin = mode != "terverifikasi"
+    k = C.get("kematangan.penalti_buah_mentah", izinkan_belum_terverifikasi=izin)
+    persen = float(komposisi.get("unripe", {}).get("value", 0.0))
+    return {
+        "unripe_pct": round(persen, 2),
+        "coefficient_per_pct": abs(k.nilai),
+        "coefficient_status": k.status,
+        "coefficient_source": k.sumber_kunci,
+        # Kutipan lengkap ikut dikirim, bukan cuma kuncinya. Petani yang
+        # membantah potongan berhak menelusuri sumbernya sendiri tanpa
+        # harus membuka repositori.
+        "citation": {
+            "judul": k.sumber.get("judul"),
+            "penerbit": k.sumber.get("penerbit"),
+            "url": k.sumber.get("url"),
+        },
+        "points": round(persen * abs(k.nilai), 3),
+        "formula": f"{persen:.1f}% x {abs(k.nilai)} = {persen * abs(k.nilai):.3f} poin",
+    }

@@ -87,10 +87,43 @@ class CompositionItem(BaseModel):
     percent: Estimate
 
 
+class SupplierInfo(BaseModel):
+    """Identitas muatan. Berasal dari basis data, tidak pernah dari layar."""
+
+    name: str
+    kind: str
+    truck_plate: str
+    gross_weight_kg: float
+    queue_hours: float
+    shift_date: date
+
+
+class DeductionBasis(BaseModel):
+    """Aritmetika potongan, lengkap dengan sitasi koefisiennya.
+
+    Dikirim utuh supaya petani yang membantah bisa menelusuri sumbernya
+    sendiri. Koefisien tidak pernah ditulis di frontend: kalau nilainya
+    berubah, layar yang menyalinnya akan memamerkan angka lama sambil
+    terlihat sangat meyakinkan.
+    """
+
+    unripe_pct: float
+    coefficient_per_pct: float
+    coefficient_status: str
+    coefficient_source: str = Field(..., description="Kunci sumber di coefficients.yaml")
+    citation: dict[str, str | None] = Field(
+        default_factory=dict,
+        description="Judul, penerbit, dan URL — supaya bisa ditelusuri sendiri")
+    points: float
+    formula: str
+
+
 class GradingResult(BaseModel):
     """Keluaran gabungan Model 1 + 2 + 4 untuk satu muatan truk."""
 
     batch_id: int | None = None
+    supplier: SupplierInfo | None = None
+    deduction_basis: DeductionBasis | None = None
     detections: list[Detection]
     overlay_url: str | None = None
 
