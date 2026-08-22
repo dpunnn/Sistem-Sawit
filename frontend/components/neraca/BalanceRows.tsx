@@ -14,10 +14,22 @@ export function BalanceRows({ balance }: { balance: BalanceCard }) {
 
   return (
     <div className="divide-y divide-line">
+      {/* Asal-usul tiap baris ditulis terbuka.
+       *
+       *  Tanpa ini, orang wajar mengira SEMUA angka di kartu ini keluaran
+       *  model — lalu bingung kenapa rendemen aktual tidak bergerak
+       *  setelah memindai foto yang berbeda.
+       *
+       *  Catatan lama pada baris ini bahkan keliru: ia menulis "ditaksir
+       *  Lapis 1 dari komposisi muatan", padahal potensi teoretis justru
+       *  BUTA terhadap komposisi. Kebutaan itu bukan kekurangan — itu
+       *  yang membuat baris kedua bisa berdiri sendiri sebagai kerugian
+       *  akibat mutu, dan yang mencegah buah mentah dihitung dua kali. */}
       <Anchor
         label="Potensi rendemen muatan hari ini"
         value={balance.potential_theoretical}
-        note="Ditaksir Lapis 1 dari komposisi seluruh muatan yang masuk"
+        note="Dari koefisien terbit (rendemen tandan matang). Sengaja BUTA terhadap komposisi — tidak berubah saat memindai."
+        asal="koefisien"
       />
 
       <LossGroup
@@ -29,7 +41,8 @@ export function BalanceRows({ balance }: { balance: BalanceCard }) {
       <Anchor
         label="Potensi realistis"
         value={balance.potential_realistic}
-        note="Setelah mutu buah yang masuk diperhitungkan — inilah yang pabrik benar-benar bisa kejar"
+        note="Keluaran Model 2 + 4. Inilah satu-satunya baris yang BERUBAH setiap kali muatan dipindai."
+        asal="model"
       />
 
       <LossGroup
@@ -45,29 +58,58 @@ export function BalanceRows({ balance }: { balance: BalanceCard }) {
         warn
       />
 
-      <Anchor label="Rendemen aktual tercapai" value={balance.actual_oer} strong />
+      <Anchor
+        label="Rendemen aktual tercapai"
+        value={balance.actual_oer}
+        note="Dari jembatan timbang pabrik di akhir shift. Tidak tersentuh model — memindai foto tidak mengubah berapa CPO yang benar-benar keluar dari tangki."
+        asal="timbangan"
+        strong
+      />
     </div>
   )
+}
+
+const ASAL: Record<string, string> = {
+  koefisien: 'koefisien terbit',
+  model: 'keluaran model',
+  timbangan: 'jembatan timbang',
 }
 
 function Anchor({
   label,
   value,
   note,
+  asal,
   strong,
 }: {
   label: string
   value: number
   note?: string
+  asal?: keyof typeof ASAL
   strong?: boolean
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-3">
       <div>
-        <div className={strong ? 'text-[15px] font-semibold text-ink' : 'text-[14px] text-ink'}>
+        <div
+          className={
+            strong
+              ? 'flex flex-wrap items-baseline gap-2 text-[15px] font-semibold text-ink'
+              : 'flex flex-wrap items-baseline gap-2 text-[14px] text-ink'
+          }
+        >
           {label}
+          {asal && (
+            <span className="rounded-full border border-line bg-plane px-2 py-0.5 text-[11px] font-normal text-ink-soft">
+              {ASAL[asal]}
+            </span>
+          )}
         </div>
-        {note && <div className="mt-0.5 text-[12px] text-ink-soft">{note}</div>}
+        {note && (
+          <div className="mt-0.5 max-w-xl text-[12px] leading-relaxed text-ink-soft">
+            {note}
+          </div>
+        )}
       </div>
       <div
         className={

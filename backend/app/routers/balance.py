@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 
 from app.core.db import get_conn
 from app.schemas.models import BalanceCard
@@ -126,3 +126,59 @@ def daftar_shift():
         "oer_aktual": round(float(r["cpo_actual_kg"]) / float(r["tbs_processed_kg"]) * 100, 3),
         "n_muatan": r["n_muatan"],
     } for r in rows]
+
+
+@router.put(
+    "/shifts/{shift_date}/output",
+    summary="Catat hasil timbangan akhir shift",
+    description=(
+        "Rendemen aktual TIDAK datang dari kamera. Ia datang dari jembatan "
+        "timbang: berapa kilogram CPO benar-benar keluar dari tangki dibagi "
+        "berapa kilogram TBS masuk. Memindai foto berapa kali pun tidak "
+        "mengubahnya, dan memang tidak boleh. "
+        "Endpoint ini jalur yang seharusnya dipakai laboratorium pabrik di "
+        "akhir shift. Tanpa endpoint ini, angka rendemen aktual hanya bisa "
+        "diisi lewat seed — artinya sistem tidak bisa dipakai untuk shift "
+        "kedua sama sekali. "
+        "Setelah dicatat, neraca dihitung ulang: potensi realistis tetap "
+        "(itu urusan mutu buah), tetapi selisihnya bergeser dan baris tak "
+        "terjelaskan ikut menyesuaikan."
+    ),
+    tags=["neraca"],
+)
+def catat_hasil_shift(
+    shift_date: date,
+    cpo_actual_kg: float = Body(..., gt=0, embed=True,
+                                description="CPO yang benar-benar dihasilkan (kg)"),
+    tbs_processed_kg: float | None = Body(
+        None, gt=0, embed=True,
+        description="TBS yang digiling (kg). Kosongkan untuk memakai angka lama."),
+):
+    with get_conn() as conn:
+        lama = conn.execute(
+            "SELECT tbs_processed_kg FROM shift_output WHERE shift_date = %s",
+            (shift_date,)).fetchone()
+        tbs = tbs_processed_kg or (float(lama["tbs_processed_kg"]) if lama else None)
+        if tbs is None:
+            raise HTTPException(
+                status_code=422,
+                detail={"pesan": "tbs_processed_kg wajib untuk shift baru.",
+                        "saran": "Kirim berat TBS yang digiling pada shift ini."})
+
+        conn.execute(
+            "INSERT INTO shift_output (shift_date, cpo_actual_kg, tbs_processed_kg) "
+            "VALUES (%s, %s, %s) "
+            "ON CONFLICT (shift_date) DO UPDATE SET "
+            "  cpo_actual_kg = EXCLUDED.cpo_actual_kg, "
+            "  tbs_processed_kg = EXCLUDED.tbs_processed_kg, "
+            "  recorded_at = now()",
+            (shift_date, cpo_actual_kg, tbs))
+        conn.commit()
+
+    return {
+        "shift_date": shift_date,
+        "cpo_actual_kg": cpo_actual_kg,
+        "tbs_processed_kg": tbs,
+        "oer_aktual": round(cpo_actual_kg / tbs * 100, 3),
+        "catatan": "Neraca akan dihitung ulang pada permintaan berikutnya.",
+    }
