@@ -3,12 +3,12 @@
 // http://backend:8000 di sini, itu tidak dikenal browser.
 import type {
   BalanceCard,
+  BatchRow,
   CorrectionStats,
   GraderDecision,
   GradingResult,
   SupplierRank,
 } from '@/types'
-import { demoBalance, demoGrading } from './demo'
 
 export const API_BASE = '/api'
 
@@ -63,71 +63,75 @@ function pesan(e: unknown, path: string): string {
   return `${path} gagal karena sebab yang tidak dikenali`
 }
 
-/** Router backend belum terpasang (lihat TODO di backend/app/main.py),
- *  jadi setiap pemanggilan wajib punya jalur mundur ke data contoh.
- *  Ini disengaja: kontrak tipe sudah disepakati di awal supaya frontend
- *  bisa dibangun penuh sementara model masih dilatih.
+/** Ambil data, atau AKUI GAGAL.
  *
- *  Yang TIDAK boleh: menelan sebab kegagalannya. Sebelumnya `catch {}`
- *  kosong membuat backend mati dan backend sehat terlihat sama persis
- *  di layar. Saat demo, itu berarti tidak ada yang tahu sistemnya
- *  sedang tidak terhubung sampai ada yang bertanya. */
-async function withFallback<T>(
-  path: string,
-  fn: () => Promise<T>,
-  fallback: T,
-): Promise<Loaded<T>> {
+ *  Sebelumnya setiap kegagalan diganti data contoh: backend mati, id
+ *  tidak ada, HTTP 500 — semuanya berubah jadi angka yang terlihat
+ *  nyata, ditandai hanya oleh badge kecil di pojok.
+ *
+ *  Akibatnya bisa dilihat sendiri: tautan sertifikat menunjuk id 4821
+ *  yang tidak pernah ada, dan yang muncul adalah halaman lengkap berisi
+ *  "4.280 kg" seolah itu hasil pengukuran. Sistem forensik yang
+ *  menampilkan angka karangan saat gagal kehilangan satu-satunya hal
+ *  yang dijualnya.
+ *
+ *  Sekarang `data` bernilai null saat gagal, dan layar WAJIB
+ *  menampilkan keadaan kosong atau pesan error — bukan angka. */
+async function ambil<T>(path: string, fn: () => Promise<T>): Promise<Loaded<T | null>> {
   try {
     return { data: await fn(), source: 'live' }
   } catch (e) {
-    return { data: fallback, source: 'demo', error: pesan(e, path) }
+    return { data: null, source: 'demo', error: pesan(e, path) }
   }
 }
 
-export function fetchBalance(shift?: string): Promise<Loaded<BalanceCard>> {
+export function fetchBalance(shift?: string): Promise<Loaded<BalanceCard | null>> {
   const q = shift ? `?shift_date=${encodeURIComponent(shift)}` : ''
   const path = `/balance${q}`
-  return withFallback(path, () => getJSON<BalanceCard>(path), demoBalance)
+  return ambil(path, () => getJSON<BalanceCard>(path))
 }
 
-export function fetchBatch(id: string): Promise<Loaded<GradingResult>> {
+/** Daftar muatan truk pada shift. Dipakai layar gerbang untuk menautkan
+ *  hasil grading ke muatan yang benar-benar tercatat. */
+export function fetchBatches(): Promise<Loaded<BatchRow[] | null>> {
+  return ambil('/batches', () => getJSON<BatchRow[]>('/batches'))
+}
+
+export function fetchBatch(id: string | number): Promise<Loaded<GradingResult | null>> {
   const path = `/grading/${id}`
-  return withFallback(path, () => getJSON<GradingResult>(path), {
-    ...demoGrading,
-    batch_id: Number(id) || demoGrading.batch_id,
-  })
+  return ambil(path, () => getJSON<GradingResult>(path))
 }
 
 /** Peringkat pemasok, dihitung backend dari hasil grading tersimpan.
  *  Jalur mundurnya daftar KOSONG, bukan daftar karangan: kartu yang
  *  tidak punya data harus mengaku kosong, bukan menampilkan nama
  *  pemasok yang tidak pernah ada. */
-export function fetchSuppliers(shift?: string): Promise<Loaded<SupplierRank[]>> {
+export function fetchSuppliers(shift?: string): Promise<Loaded<SupplierRank[] | null>> {
   const q = shift ? `?shift_date=${encodeURIComponent(shift)}` : ''
   const path = `/suppliers${q}`
-  return withFallback(path, () => getJSON<SupplierRank[]>(path), [])
+  return ambil(path, () => getJSON<SupplierRank[]>(path))
 }
 
 /** Statistik koreksi grader. Jalur mundurnya `cukup_data: false`,
  *  supaya layar menampilkan keadaan kosong alih-alih tren palsu. */
-export function fetchCorrections(): Promise<Loaded<CorrectionStats>> {
-  const path = '/corrections'
-  return withFallback(path, () => getJSON<CorrectionStats>(path), {
-    n_keputusan: 0, n_koreksi: 0, rasio_koreksi: null,
-    cukup_data: false, ambang_cukup_data: 20, per_minggu: [],
-    catatan: 'Backend belum terhubung, jadi belum ada koreksi yang bisa dibaca.',
-  })
+export function fetchCorrections(): Promise<Loaded<CorrectionStats | null>> {
+  return ambil('/corrections', () => getJSON<CorrectionStats>('/corrections'))
 }
 
 /** Unggah foto muatan -> Model 1 + 2 + 4. */
-export function gradeImage(file: File): Promise<Loaded<GradingResult>> {
+export function gradeImage(file: File, opsi?: {
+  gross_weight_kg?: number
+  batch_id?: number
+}): Promise<Loaded<GradingResult | null>> {
   const body = new FormData()
   body.append('image', file)
-  return withFallback(
-    '/grading',
-    () => getJSON<GradingResult>('/grading', { method: 'POST', body }),
-    demoGrading,
-  )
+  if (opsi?.gross_weight_kg) body.append('gross_weight_kg', String(opsi.gross_weight_kg))
+  // batch_id membuat hasilnya TERSIMPAN dan punya sertifikat sungguhan.
+  // Tanpa itu, model tetap berjalan tetapi hasilnya hilang begitu layar
+  // ditutup — dan tautan sertifikatnya menunjuk ke ketiadaan.
+  if (opsi?.batch_id) body.append('batch_id', String(opsi.batch_id))
+  return ambil('/grading', () =>
+    getJSON<GradingResult>('/grading', { method: 'POST', body }))
 }
 
 /** Keputusan grader: setuju, atau koreksi beserta alasannya.

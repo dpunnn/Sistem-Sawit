@@ -58,6 +58,19 @@ export type DeductionBasis = {
   formula: string
 }
 
+/** Satu muatan truk yang tercatat di gerbang. */
+export type BatchRow = {
+  id: number
+  truck_plate: string
+  supplier: string
+  kind: string
+  gross_weight_kg: number
+  queue_hours: number
+  shift_date: string
+  grading_id: number | null
+  unripe_pct: number | null
+}
+
 export type SupplierRank = {
   name: string
   kind: string
