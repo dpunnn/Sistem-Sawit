@@ -48,6 +48,10 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # Dibaca saat BUILD karena Next.js membekukan hasil rewrites()
+        # ke routes-manifest. Lihat komentar di frontend/Dockerfile.
+        API_URL: http://backend:8000
     container_name: neraca-frontend
     environment:
       API_URL: http://backend:8000

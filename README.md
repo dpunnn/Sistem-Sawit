@@ -478,12 +478,26 @@ docker compose up --build
 
 Buka **http://localhost:3000**
 
-| Alamat                           | Isi                                  |
-| -------------------------------- | ------------------------------------ |
-| http://localhost:3000            | Antarmuka utama                      |
-| http://localhost:3000/neraca     | Kartu neraca harian                  |
-| http://localhost:8000/docs       | Dokumentasi API interaktif (OpenAPI) |
-| http://localhost:8000/api/health | Cek koneksi backend ↔ database      |
+**Semuanya lewat satu alamat: `localhost:3000`.** Browser tidak pernah
+memanggil `localhost:8000` — Next.js meneruskan `/api/*` dan `/static/*`
+ke container backend lewat jaringan docker. Tidak ada CORS, dan tidak
+ada perbedaan URL antara mode dev dan mode docker.
+
+| Alamat                                 | Isi                                     |
+| -------------------------------------- | --------------------------------------- |
+| http://localhost:3000                  | Antarmuka utama (gerbang PKS)           |
+| http://localhost:3000/neraca           | Kartu neraca harian                     |
+| http://localhost:3000/api/health       | Cek rantai API ↔ database ↔ model      |
+| http://localhost:3000/api/balance      | Kartu neraca, JSON                      |
+| http://localhost:8000/docs             | Swagger — satu-satunya alasan menyentuh port 8000 |
+
+> **Jebakan yang sudah ditutup.** Next.js membekukan hasil `rewrites()`
+> saat `next build`, bukan saat server menyala. Menyetel `API_URL` hanya
+> lewat `environment:` di compose tidak berpengaruh — nilai yang terpakai
+> sudah terlanjur jadi `localhost:8000`, dan di dalam container
+> `localhost` adalah container frontend sendiri. Karena itu compose
+> mengirimnya sebagai **build ARG**. Gejalanya menyesatkan: halaman
+> tetap render 200 sementara setiap `/api/*` dari browser menjawab 500.
 
 > **Estimasi waktu build pertama: 8–12 menit.** Sebagian besar dipakai
 > mengunduh PyTorch dan menjalankan `next build`. Build berikutnya jauh
