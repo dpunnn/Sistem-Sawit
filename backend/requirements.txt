@@ -1,0 +1,33 @@
+# VERSI DIPIN SEMUA — reprodusibilitas.
+#
+# Kalau versi mengambang, build bulan depan bisa menarik rilis baru yang
+# breaking, dan yang menemukannya adalah juri saat menjalankan
+# `docker compose up`, bukan kita.
+#
+# torch & torchvision TIDAK ada di sini: keduanya dipasang lebih dulu di
+# Dockerfile dari index CPU. Menaruhnya di sini akan menarik varian CUDA
+# dan image membengkak dari ratusan MB jadi ~5 GB.
+
+# --- web ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.5
+python-multipart==0.0.20        # dibutuhkan UploadFile pada POST multipart
+
+# --- basis data ---
+psycopg[binary]==3.2.3
+psycopg-pool==3.2.4
+
+# --- lapis AI (inferensi saja, pelatihan di luar image) ---
+ultralytics==8.3.60
+pillow==11.1.0
+numpy==2.2.1
+pandas==2.2.3
+scikit-learn==1.6.1
+scipy==1.15.1
+joblib==1.4.2
+PyYAML==6.0.2
+
+# --- pengujian ---
+pytest==8.3.4
+httpx==0.28.1                   # TestClient FastAPI
