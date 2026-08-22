@@ -131,8 +131,11 @@ function buildStages(g: GradingResult, b: BalanceCard): Stage[] {
     {
       model: 'Model 5',
       what: 'selisih neraca massa',
-      measure: `${fmtPoint(b.total_loss_points)} poin`,
-      why: 'Ini selisih dua taksiran, jadi ketidakpastiannya menumpuk — bukan menyempit. Kontrak data belum membawa selang untuk tahap ini, dan lubang itu ditandai, tidak ditutupi.',
+      measure: `${fmtPoint(b.unexplained.points.value)} ± ${fmtPoint(
+        margin(b.unexplained.points),
+      )} poin`,
+      rel: spread(b.unexplained.points),
+      why: 'Ini selisih beberapa angka yang semuanya tidak pasti, jadi ragamnya menjumlah dan selangnya MELEBAR — bukan menyempit. Baris tak terjelaskan memang yang paling lebar di seluruh rantai, dan begitulah seharusnya.',
       fill: SIDE_FILL.mill,
     },
     {

@@ -379,9 +379,9 @@ export default function GatePage() {
                 <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{kirim}</p>
               )}
 
-              {result?.batch_id ? (
+              {result?.grading_id ? (
                 <Link
-                  href={`/batch/${result.batch_id}`}
+                  href={`/batch/${result.grading_id}`}
                   className="mt-4 inline-block text-[13px] font-medium text-mill underline underline-offset-4"
                 >
                   Lihat sertifikat sortasi muatan ini →

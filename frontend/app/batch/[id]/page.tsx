@@ -87,7 +87,7 @@ export default async function BatchDetailPage({
             Sertifikat Sortasi
           </h1>
           <p className="mt-1 text-[14px] text-ink-soft">
-            Muatan #{batch.batch_id ?? id}
+            Muatan #{batch.batch_id ?? '—'} · grading #{batch.grading_id ?? id}
             {batch.supplier && ` · ${batch.supplier.name}`}
             {batch.supplier && ` · ${batch.supplier.truck_plate}`} · {scanned}
           </p>
@@ -182,7 +182,14 @@ export default async function BatchDetailPage({
               <span>
                 Dampak rendemen ={' '}
                 <span className="tnum">
-                  {dasar ? dasar.formula : '—'}
+                  {dasar ? (
+                    <>
+                      {fmtPct(dasar.unripe_pct)} × {fmtPoint(dasar.coefficient_per_pct)} ={' '}
+                      <strong>{fmtPoint(dasar.points)} poin</strong>
+                    </>
+                  ) : (
+                    '—'
+                  )}
                 </span>
               </span>
             </li>

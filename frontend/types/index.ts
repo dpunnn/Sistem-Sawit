@@ -55,7 +55,7 @@ export type DeductionBasis = {
   coefficient_source: string
   citation: { judul?: string | null; penerbit?: string | null; url?: string | null }
   points: number
-  formula: string
+  formula?: string | null
 }
 
 /** Satu muatan truk yang tercatat di gerbang. */
@@ -92,7 +92,10 @@ export type CorrectionStats = {
 }
 
 export type GradingResult = {
+  /** Id MUATAN truk. */
   batch_id?: number | null
+  /** Id HASIL GRADING — ini yang dipakai untuk tautan sertifikat. */
+  grading_id?: number | null
   supplier?: SupplierInfo | null
   deduction_basis?: DeductionBasis | null
   detections: Detection[]
