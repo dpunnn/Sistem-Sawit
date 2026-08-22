@@ -75,6 +75,7 @@ export default async function NeracaPage() {
 
   const supplierPoints = balance.supplier_losses.reduce((a, l) => a + l.points.value, 0)
   const millPoints = balance.mill_losses.reduce((a, l) => a + l.points.value, 0)
+  const sisaPoints = balance.unexplained.points.value
 
   const shift = new Date(balance.shift_date).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -137,6 +138,18 @@ export default async function NeracaPage() {
               }
             />
 
+            {/* TIGA bagian, bukan dua.
+             *
+             *  Versi sebelumnya hanya memajang sisi pemasok dan sisi
+             *  pabrik, lalu mengisi kotak ketiga dengan rupiah. Yang
+             *  terbaca: 3,15 + 2,22 = 5,37 — padahal judul di sebelahnya
+             *  4,84. Sistem yang seluruh nilai jualnya adalah neraca yang
+             *  menutup, memajang aritmetika yang tidak menutup di layar
+             *  paling atas.
+             *
+             *  Baris tak terjelaskan memang boleh negatif, dan justru itu
+             *  yang harus terlihat: ia menandai koefisien yang terlalu
+             *  berhati-hati, bukan sesuatu yang pantas disembunyikan. */}
             <div className="grid gap-3 sm:grid-cols-3">
               <StatTile
                 label="Sisi pemasok"
@@ -149,14 +162,32 @@ export default async function NeracaPage() {
                 note="Perebusan, kempa, klarifikasi"
               />
               <StatTile
-                label="Nilai kehilangan"
-                value={fmtIDR(balance.loss_value_idr)}
-                note="Shift ini"
+                label="Tidak terjelaskan"
+                value={`${fmtPoint(balance.unexplained.points.value)} poin`}
+                note={
+                  balance.unexplained.points.value < 0
+                    ? 'Negatif: neraca menjelaskan lebih banyak daripada yang hilang'
+                    : 'Tidak dibebankan ke pihak mana pun'
+                }
               />
             </div>
           </div>
 
-          <p className="mt-5 border-t border-line pt-4 text-[12px] leading-relaxed text-ink-soft">
+          <p className="mt-5 border-t border-line pt-4 text-[13px] leading-relaxed text-ink">
+            <span className="tnum">
+              {fmtPoint(supplierPoints)} + {fmtPoint(millPoints)}{' '}
+              {/* tanda dirangkai sendiri: "+ -0,53" terbaca seperti salah
+                  ketik, padahal sisa negatif adalah keadaan yang sah */}
+              {sisaPoints < 0 ? '−' : '+'} {fmtPoint(Math.abs(sisaPoints))} ={' '}
+              <strong>{fmtPoint(balance.total_loss_points)} poin</strong>
+            </span>
+            <span className="text-ink-soft">
+              {' '}
+              · senilai <strong>{fmtIDR(balance.loss_value_idr)}</strong> pada shift ini
+            </span>
+          </p>
+
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
             Angka <strong>{fmtPoint(balance.total_loss_points)} poin</strong> tetap
             sepanjang shift: potensi teoretis datang dari koefisien terbit dan
             rendemen aktual dari jembatan timbang — keduanya bukan keluaran model.
