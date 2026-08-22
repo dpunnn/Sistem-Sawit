@@ -262,3 +262,33 @@ if __name__ == "__main__":
         print(f"  dasar sah      : {h.dasar_sah}")
         if h.penalti_dilewati:
             print(f"  DILEWATI       : {', '.join(h.penalti_dilewati)}")
+
+
+# --------------------------------------------------------------------
+# Permukaan resmi (GATE AI-2). Backend memanggil nama ini.
+# --------------------------------------------------------------------
+
+def estimate(komposisi_selang: dict[str, tuple[float, float, float]],
+             berat_bruto_kg: float, *, mode: str = "terverifikasi",
+             koreksi=None, **kw) -> PotensiMinyak:
+    """Potensi minyak berselang, dari keluaran `composition.infer`.
+
+    `koreksi` adalah `KoreksiTerpelajar` yang sudah dilatih, atau None.
+    Kalau diberikan, hasilnya adalah formula DITAMBAH koreksi terbatas —
+    tidak pernah koreksi menggantikan formula. Bila koreksi menyalakan
+    alarm, pesannya diteruskan apa adanya alih-alih ditelan, karena
+    alarm itu justru gunanya.
+    """
+    titik = hitung_dengan_selang(komposisi_selang, berat_bruto_kg,
+                                 mode=mode, **kw)
+    if koreksi is None:
+        return titik
+
+    komposisi = {k: v[1] for k, v in komposisi_selang.items()}
+    h = koreksi.terapkan(komposisi)
+    geser = h.koreksi_poin
+    d = titik.sebagai_dict()
+    d["oer_realistis"] = titik.oer_realistis + geser
+    for k in ("potensi_kg", "potensi_lo", "potensi_hi"):
+        d[k] = d[k] + berat_bruto_kg * geser / 100.0
+    return PotensiMinyak(**d)

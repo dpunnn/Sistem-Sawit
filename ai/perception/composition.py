@@ -309,3 +309,34 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# --------------------------------------------------------------------
+# Permukaan resmi (GATE AI-2). Backend memanggil nama ini.
+# --------------------------------------------------------------------
+
+_model_bawaan: Model2 | None = None
+
+
+def model_bawaan(path: Path = BOBOT) -> Model2:
+    """Satu instans bersama, dimuat sekali."""
+    global _model_bawaan
+    if _model_bawaan is None:
+        _model_bawaan = Model2.muat(path)
+    return _model_bawaan
+
+
+def infer(komposisi_terlihat: dict[str, float], n_terlihat: int,
+          n_tandan_taksiran: int) -> dict[str, Selang]:
+    """Dari komposisi PERMUKAAN ke komposisi SELURUH MUATAN, berselang.
+
+    `komposisi_terlihat` adalah keluaran `Detector.komposisi_terlihat`,
+    yaitu proporsi tandan pada lapisan yang tertangkap kamera.
+
+    `n_tandan_taksiran` biasanya berat_bruto / berat rata-rata tandan.
+    Ia dibutuhkan karena lebar selang bergantung pada seberapa kecil
+    cuplikan permukaan dibanding muatan penuh — melihat 30 tandan dari
+    100 sangat berbeda dari melihat 30 dari 400.
+    """
+    return model_bawaan().prediksi_satu(
+        komposisi_terlihat, n_terlihat, n_tandan_taksiran)

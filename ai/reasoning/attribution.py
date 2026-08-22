@@ -311,6 +311,36 @@ class Model6:
         return pd.DataFrame(baris)
 
 
+# --------------------------------------------------------------------
+# Permukaan resmi (GATE AI-4). Backend memanggil nama ini.
+# --------------------------------------------------------------------
+
+_model_bawaan: Model6 | None = None
+
+
+def pelajari_riwayat(df: pd.DataFrame, *, seed: int = 42) -> Model6:
+    """Pelajari pola dari riwayat giling dan simpan sebagai instans bersama."""
+    global _model_bawaan
+    _model_bawaan = Model6(seed=seed).pelajari(df)
+    return _model_bawaan
+
+
+def decompose(baris, *, model: Model6 | None = None) -> Diagnosa:
+    """Pecah kehilangan satu hari jadi penyebab, masing-masing BERSELANG.
+
+    Butuh `pelajari_riwayat` dijalankan lebih dulu — dan itu disengaja.
+    Sistem yang bisa menuduh sebelum melihat riwayat pabriknya sendiri
+    sedang menebak. Di bawah 120 hari riwayat, pemulihan aturannya belum
+    layak dipakai menunjuk sebab (lihat docs/experiments.md bagian 9).
+    """
+    m = model or _model_bawaan
+    if m is None:
+        raise RuntimeError(
+            "panggil pelajari_riwayat(df) dulu — atribusi tanpa riwayat "
+            "pabrik adalah tebakan, bukan diagnosis")
+    return m.diagnosa(baris)
+
+
 def _peragaan() -> None:
     from ai.simulator.mill import Pabrik
 
