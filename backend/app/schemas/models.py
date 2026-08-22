@@ -185,6 +185,10 @@ class GraderDecision(BaseModel):
 class BalanceCard(BaseModel):
 
     shift_date: date
+    n_muatan: int = Field(
+        0, description="Berapa muatan yang menyumbang ke neraca ini")
+    computed_at: datetime | None = Field(
+        None, description="Kapan angka ini dihitung ulang")
 
     potential_theoretical: float 
     supplier_losses: list[LossAttribution]

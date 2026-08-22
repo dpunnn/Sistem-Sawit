@@ -1,4 +1,12 @@
 // Halaman neraca harian -- KLIMAKS produk.
+//
+// force-dynamic: neraca dihitung ulang dari basis data tiap permintaan.
+// Tanpa ini, halaman bisa disajikan dari cache dan terlihat beku persis
+// saat orang baru selesai memindai muatan -- kesan paling buruk yang
+// bisa diberikan sistem yang justru berjanji menghitung ulang.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // "2,2 poin hilang. Ini rinciannya. Ini yang bisa diperbaiki."
 
 import { fetchBalance, fetchBatch, fetchCorrections, fetchSuppliers } from '@/lib/api'
@@ -71,6 +79,15 @@ export default async function NeracaPage() {
           <p className="mt-1 text-[14px] text-ink-soft">
             Lapis 2 — Penalaran. &ldquo;Ke mana perginya?&rdquo; · {shift}
           </p>
+          <p className="mt-1 text-[12px] text-ink-muted">
+            Dihitung ulang dari {balance.n_muatan} muatan yang sudah dinilai
+            {balance.computed_at &&
+              ` · ${new Date(balance.computed_at).toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}`}
+          </p>
         </div>
         <SourceBadge source={source} />
       </div>
@@ -96,6 +113,11 @@ export default async function NeracaPage() {
               <>
                 Potensi {fmtPoint(balance.potential_theoretical)}% → aktual{' '}
                 {fmtPoint(balance.actual_oer)}%
+                <span className="mt-1 block text-[12px] text-ink-muted">
+                  Angka ini TETAP sepanjang shift: keduanya datang dari koefisien
+                  terbit dan dari jembatan timbang, bukan dari model. Yang
+                  bergerak saat muatan dipindai adalah PEMBAGIANNYA di bawah.
+                </span>
               </>
             }
           />

@@ -132,6 +132,8 @@ export type StationLoss = {
 
 export type BalanceCard = {
   shift_date: string
+  n_muatan: number
+  computed_at?: string | null
 
   /** Potensi teoretis dari muatan yang masuk (%). */
   potential_theoretical: number

@@ -11,7 +11,7 @@ Kalau ada, ada rumus yang menyelinap ke lapis yang salah.
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -143,6 +143,11 @@ def kartu_dari_basis_data(shift: date, conn, *,
     hilang = kartu.oer_teoretis - kartu.oer_aktual
     return {
         "shift_date": shift,
+        # Jejak asal-usul. Tanpa ini, layar tidak punya cara menunjukkan
+        # bahwa angkanya baru dihitung ulang — dan orang wajar mengira
+        # halamannya beku padahal isinya memang belum berubah.
+        "n_muatan": len(baris),
+        "computed_at": datetime.now(timezone.utc),
         "potential_theoretical": round(kartu.oer_teoretis, 3),
         "supplier_losses": [selang_baris(b) for b in kartu.rugi_pemasok],
         "potential_realistic": round(kartu.oer_realistis, 3),

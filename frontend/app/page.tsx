@@ -82,6 +82,18 @@ export default function GatePage() {
     // inferensi membuat orang mengklik lagi dan mengirim request kedua.
     if (memindai) return
 
+    // Tanpa muatan terpilih, hasilnya TIDAK tersimpan: model tetap
+    // berjalan, angkanya muncul di layar, lalu hilang begitu halaman
+    // ditutup — dan neraca tidak ikut berubah sama sekali. Kegagalan
+    // yang paling membingungkan karena semuanya terlihat berhasil.
+    if (!muatanDipilih) {
+      setGagal(
+        'Pilih dulu muatan yang sedang ditimbang. Tanpa itu hasil pindaian ' +
+          'tidak bisa disimpan, tidak punya sertifikat, dan tidak masuk ke neraca.',
+      )
+      return
+    }
+
     setImageUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev)
       return URL.createObjectURL(file)
@@ -206,7 +218,7 @@ export default function GatePage() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 variant="primary"
-                disabled={memindai}
+                disabled={memindai || !muatanDipilih}
                 onClick={() => bukaDialogBerkas(rootRef.current)}
               >
                 {memindai ? 'Memindai…' : 'Unggah foto muatan'}
@@ -386,6 +398,17 @@ export default function GatePage() {
                 >
                   Lihat sertifikat sortasi muatan ini →
                 </Link>
+              ) : null}
+
+              {result?.grading_id ? (
+                <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
+                  Tersimpan sebagai grading #{result.grading_id}. Neraca harian
+                  sudah dihitung ulang memakai komposisi ini —{' '}
+                  <Link href="/neraca" className="text-mill underline underline-offset-2">
+                    lihat neraca
+                  </Link>
+                  .
+                </p>
               ) : result ? (
                 <p className="mt-4 text-[12px] leading-relaxed text-ink-soft">
                   Hasil ini belum tersimpan, jadi belum punya sertifikat. Pilih
