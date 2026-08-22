@@ -41,3 +41,12 @@ data/interim/**
 # Tidak perlu di-commit: akan diunduh ulang sendiri bila dibutuhkan.
 ai/notebooks/*.pt
 yolo*.pt
+
+# Gambar overlay hasil inferensi -- dibangkitkan ulang tiap unggahan,
+# tidak ada gunanya di repo dan cepat menumpuk.
+data/overlays/
+
+# Foto contoh untuk juri SENGAJA ikut repo: tanpa ini, skenario demo di
+# README tidak bisa dijalankan siapa pun yang baru clone.
+!data/samples/
+!data/samples/*.jpg
