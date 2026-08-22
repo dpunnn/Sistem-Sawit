@@ -88,10 +88,18 @@ def kartu_dari_basis_data(shift: date, conn, *,
     cpo = float(out["cpo_actual_kg"])
 
     # Komposisi shift = rata-rata berbobot berat tiap muatan.
+    #
+    # DISTINCT ON: satu muatan hanya boleh menyumbang SEKALI, memakai
+    # grading terbarunya. Tanpa ini, memindai ulang truk yang sama
+    # membuat beratnya dihitung berkali-kali — dan pernah membuat berat
+    # yang dipakai neraca menggelembung dari 131.926 kg jadi 205.639 kg
+    # tanpa satu pun error muncul.
     baris = conn.execute(
-        "SELECT g.composition, b.gross_weight_kg, b.queue_hours "
+        "SELECT DISTINCT ON (b.id) g.composition, b.gross_weight_kg, "
+        "       b.queue_hours "
         "FROM grading_result g JOIN batch b ON b.id = g.batch_id "
-        "WHERE b.shift_date = %s", (shift,)).fetchall()
+        "WHERE b.shift_date = %s "
+        "ORDER BY b.id, g.id DESC", (shift,)).fetchall()
     if not baris:
         return None
 
@@ -228,5 +236,9 @@ def dasar_potongan(komposisi: dict, *, mode: str = "terverifikasi") -> dict:
             "url": k.sumber.get("url"),
         },
         "points": round(persen * abs(k.nilai), 3),
-        "formula": f"{persen:.1f}% x {abs(k.nilai)} = {persen * abs(k.nilai):.3f} poin",
+        # Sengaja TIDAK mengirim kalimat jadi. Pemformatan angka adalah
+        # urusan layar: backend yang merangkai teks akan memakai titik
+        # desimal Inggris di tengah antarmuka berbahasa Indonesia, dan
+        # itu tidak bisa diperbaiki dari sisi frontend.
+        "formula": None,
     }

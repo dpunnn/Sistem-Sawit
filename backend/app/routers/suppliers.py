@@ -40,17 +40,26 @@ def daftar_pemasok(shift_date: date | None = Query(
     argumen = (shift_date,) if shift_date else ()
 
     with get_conn() as conn:
+        # Satu muatan menyumbang SEKALI, memakai grading terbarunya.
+        # Memindai ulang truk yang sama tidak boleh membuat pemasoknya
+        # terlihat mengirim lebih banyak muatan daripada kenyataan.
         rows = conn.execute(f"""
+            WITH terbaru AS (
+                SELECT DISTINCT ON (b.id)
+                       b.id, b.supplier_id, b.gross_weight_kg, b.queue_hours,
+                       g.composition
+                FROM batch b
+                JOIN grading_result g ON g.batch_id = b.id
+                {syarat}
+                ORDER BY b.id, g.id DESC
+            )
             SELECT s.name, s.kind,
-                   count(g.id)                                        AS n_muatan,
-                   avg((g.composition->'unripe'->>'v')::numeric)       AS mentah,
-                   avg((g.composition->'ripe'->>'v')::numeric)         AS masak,
-                   sum(b.gross_weight_kg)                              AS berat_kg,
-                   avg(b.queue_hours)                                  AS restan_jam
-            FROM supplier s
-            JOIN batch b ON b.supplier_id = s.id
-            JOIN grading_result g ON g.batch_id = b.id
-            {syarat}
+                   count(t.id)                                    AS n_muatan,
+                   avg((t.composition->'unripe'->>'v')::numeric)   AS mentah,
+                   avg((t.composition->'ripe'->>'v')::numeric)     AS masak,
+                   sum(t.gross_weight_kg)                          AS berat_kg,
+                   avg(t.queue_hours)                              AS restan_jam
+            FROM supplier s JOIN terbaru t ON t.supplier_id = s.id
             GROUP BY s.id, s.name, s.kind
             ORDER BY mentah DESC NULLS LAST
         """, argumen).fetchall()
@@ -144,7 +153,7 @@ def daftar_muatan(shift_date: date | None = Query(None), limit: int = Query(50, 
             JOIN supplier s ON s.id = b.supplier_id
             LEFT JOIN LATERAL (
                 SELECT id, composition FROM grading_result
-                WHERE batch_id = b.id ORDER BY id LIMIT 1
+                WHERE batch_id = b.id ORDER BY id DESC LIMIT 1
             ) g ON TRUE
             {syarat}
             ORDER BY b.received_at
