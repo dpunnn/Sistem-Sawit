@@ -18,6 +18,8 @@ import {
 } from '@/lib/format'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Swatch, SourceBadge, StatTile, Warn } from '@/components/ui/Bits'
+import { ErrorState, Planned } from '@/components/ui/States'
+import { RipenessLegend } from '@/components/grading/RipenessLegend'
 import { CompositionTable } from '@/components/grading/Composition'
 
 export default async function BatchDetailPage({
@@ -26,7 +28,7 @@ export default async function BatchDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { data: batch, source } = await fetchBatch(id)
+  const { data: batch, source, error } = await fetchBatch(id)
 
   const oil = batch.potential_oil_kg
   const unripe = batch.composition.find((c) => c.ripeness === 'unripe')
@@ -54,6 +56,12 @@ export default async function BatchDetailPage({
         </div>
         <SourceBadge source={source} />
       </div>
+
+      {error && (
+        <div className="mt-5">
+          <ErrorState message={error} />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <StatTile
@@ -125,37 +133,41 @@ export default async function BatchDetailPage({
         </CardBody>
       </Card>
 
+      {/* Rencana lanjutan, BUKAN keluaran model.
+       *
+       *  Sebelumnya kartu ini berlabel "Model 8". Sistem ini hanya punya
+       *  Model 1-6; tidak ada Model 7 maupun 8 di ai/, di README, maupun
+       *  di pipeline. Menyebut nomor model yang tidak ada membuat seluruh
+       *  penomoran lain ikut diragukan -- persis kredibilitas yang jadi
+       *  satu-satunya modal sistem forensik. */}
       <Card className="mt-5">
         <CardHeader
-          title="Rekomendasi"
-          subtitle="Model 8 — status tahap lanjutan, disebut jujur sebagai simulasi."
+          title="Rekomendasi agronomi"
+          subtitle="Rencana lanjutan — belum dibangun. Teks di bawah contoh bentuk keluaran, bukan hasil model."
+          aside={<Planned />}
         />
         <CardBody>
-          <p className="text-[13px] leading-relaxed text-ink">
-            Buah mentah Anda naik tiga minggu berturut-turut. Interval panen kemungkinan
-            terlalu rapat. Rekomendasi: perpanjang dari 7 ke 10 hari.
+          <p className="text-[13px] leading-relaxed text-ink-soft">
+            &ldquo;Buah mentah Anda naik tiga minggu berturut-turut. Interval panen
+            kemungkinan terlalu rapat. Rekomendasi: perpanjang dari 7 ke 10
+            hari.&rdquo;
           </p>
           <p className="mt-3 text-[12px] leading-relaxed text-ink-soft">
-            Tujuan layar ini mengubah interaksi dari menghukum menjadi membantu —
-            rendemen yang naik menguntungkan kedua pihak.
+            Arah yang dituju: mengubah interaksi dari menghukum menjadi membantu.
+            Untuk sampai ke sana dibutuhkan riwayat panen per pemasok yang saat ini
+            belum dikumpulkan, jadi kartu ini sengaja dibiarkan kosong isinya
+            daripada diisi tebakan yang terlihat meyakinkan.
           </p>
         </CardBody>
       </Card>
 
       <Card className="mt-5">
-        <CardHeader title="Foto bukti" subtitle="Arsip muatan saat ditimbang." />
+        <CardHeader
+          title="Legenda kelas & jejak audit"
+          subtitle="Warna yang dipakai di seluruh sistem, beserta arsip muatan saat ditimbang."
+        />
         <CardBody>
-          <div className="flex flex-wrap gap-2">
-            {RIPENESS_ORDER.slice(0, 5).map((r) => (
-              <span
-                key={r}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[12px] text-ink-soft"
-              >
-                <Swatch fill={RIPENESS_FILL[r]} />
-                {RIPENESS_LABEL[r]}
-              </span>
-            ))}
-          </div>
+          <RipenessLegend />
           <p className="mt-3 text-[12px] text-ink-soft">
             Foto asli muatan tersimpan sebagai jejak audit dan dapat dibuka kembali bila
             ada sengketa.

@@ -2,7 +2,7 @@
 // "2,2 poin hilang. Ini rinciannya. Ini yang bisa diperbaiki."
 
 import { fetchBalance, fetchBatch } from '@/lib/api'
-import { demoCorrectionCurve, demoStationLosses, demoSuppliers } from '@/lib/demo'
+import { demoCorrectionCurve, demoSuppliers } from '@/lib/demo'
 import { SIDE_FILL, fmtIDR, fmtPoint } from '@/lib/format'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Hero, Legend, SourceBadge, StatTile } from '@/components/ui/Bits'
@@ -12,9 +12,10 @@ import { AttributionTable, BalanceRows } from '@/components/neraca/BalanceRows'
 import { StationLosses } from '@/components/neraca/StationLosses'
 import { UncertaintyChain } from '@/components/neraca/UncertaintyChain'
 import { CorrectionCurve, SupplierRanking } from '@/components/neraca/Suppliers'
+import { DemoOnly, ErrorState } from '@/components/ui/States'
 
 export default async function NeracaPage() {
-  const { data: balance, source } = await fetchBalance()
+  const { data: balance, source, error } = await fetchBalance()
 
   // Rantai perambatan membentang dari Lapis 1 ke Lapis 2, jadi halaman ini
   // butuh satu muatan sebagai wakil hulunya. Sumbernya digabung ke yang
@@ -46,6 +47,12 @@ export default async function NeracaPage() {
         <SourceBadge source={source} />
       </div>
 
+      {error && (
+        <div className="mt-5">
+          <ErrorState message={error} />
+        </div>
+      )}
+
       {/* ---- Angka pahlawan + ringkasan dua arah ---- */}
       <Card className="mt-6">
         <CardBody className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
@@ -74,7 +81,7 @@ export default async function NeracaPage() {
             <StatTile
               label="Sisi pabrik"
               value={`${fmtPoint(millPoints)} poin`}
-              note="Restan, sterilisasi, ampas kempa"
+              note="Perebusan, kempa, klarifikasi"
             />
             <StatTile
               label="Nilai kehilangan"
@@ -131,6 +138,7 @@ export default async function NeracaPage() {
             <CardHeader
               title="Peringkat pemasok"
               subtitle="Persen buah mentah minggu ini, per pemasok."
+              aside={<DemoOnly note="Belum ada endpoint /api/suppliers" />}
             />
             <CardBody>
               <SupplierRanking rows={demoSuppliers} />
@@ -140,7 +148,8 @@ export default async function NeracaPage() {
           <Card>
             <CardHeader
               title="Koreksi grader per 100 muatan"
-              subtitle="Turun dari minggu ke minggu — bukti sistem benar-benar mempelajari pabrik ini."
+              subtitle="Bentuk laporan yang dituju: koreksi menurun berarti model makin cocok dengan pabrik ini."
+              aside={<DemoOnly note="Belum ada endpoint, dan sistem belum pernah berjalan enam minggu" />}
             />
             <CardBody>
               <CorrectionCurve data={demoCorrectionCurve} />
@@ -156,11 +165,15 @@ export default async function NeracaPage() {
           subtitle="Bagian neraca yang tidak melibatkan model sama sekali — fisika dan akuntansi, dari pekerjaan lab harian yang sudah rutin di pabrik."
         />
         <CardBody>
-          <StationLosses rows={demoStationLosses} />
+          <StationLosses rows={balance.station_losses} />
           <p className="mt-4 text-[12px] leading-relaxed text-ink-soft">
-            Angka di atas adalah nilai kalibrasi dari studi kasus terpublikasi,
-            sama persis dengan yang dipakai simulator neraca massa. Seluruh
-            koefisien beserta sitasinya ada di satu berkas —{' '}
+            Kadar minyak di atas adalah nilai kalibrasi dari studi kasus
+            terpublikasi, sama persis dengan yang dipakai simulator neraca massa.
+            Nisbah massanya masih taksiran teknik berstatus{' '}
+            <code className="rounded bg-plane px-1 py-0.5 text-[11px] text-ink">
+              perlu_verifikasi
+            </code>
+            . Seluruh koefisien beserta sitasi dan statusnya ada di satu berkas —{' '}
             <code className="rounded bg-plane px-1 py-0.5 text-[11px] text-ink">
               ai/config/coefficients.yaml
             </code>{' '}
